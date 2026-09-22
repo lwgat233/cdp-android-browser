@@ -287,6 +287,19 @@ tools/        指路牌（真正的脚本在 source/cdp/tools/）
 | `23-键值对排版与两种录制方式.txt` | 小窗里的键值对排版（键 11px 在上 / 值 15px 在下 / 对间横线）与「元素录制 / 坐标录制」两种方式；`verify_kv_recmode.py` 16/16 |
 | `22-行信息与小窗不重复.txt` | 信息列表的行里不许有按键、**点行就弹窗摆出这条的全部信息**；小窗"按键重复"的根因（只追加不清理）与修法；`verify_rows.py` 25/25 |
 | `23-信息列表与小窗的行为规矩.txt` | （见 docs/开发与界面指导.md 第四节）行/小窗的规矩与两个自检入口 `__cdpRowScan()` / `__cdpModalScan()` |
+| `54-首页小app不显示（桥只挂了控制台WebView）.txt` | 议题 #1 真因：`cdpNative` 桥只挂在**控制台** WebView，首页拿到的是 undefined → 小 app 网格静默空白（只剩「＋添加应用」）；修法＝两个 WebView 都挂；`tools/verify_home_grid.py` **5/5** + 点「＋添加」真出小窗 + 控制口加一条 → 首页显示 → 删除回退 |
+
+## 议题与验收流程（2026-09-22 用户定的规矩）
+
+1. 议题（GitHub Issues）＝用户报的问题/需求；开工前先看议题正文 + `docs/问题与需求登记.md`。
+2. 我**先复现 → 改 → 自测**：判据必须读**真实状态**（页内真实 DOM/接口返回/字节数），截图与"应该没问题"都不算数；证据写进 `evidence/`。
+3. 自测过了才去议题下**回帖**：真因 + 改了哪几处 + 自测结果（原始输出）+ **给用户看的通俗验证步骤**（几步、看什么、什么算好、没好的话回什么话）。
+4. 回帖后**等用户真机二次验证**；确认前不自己关议题。
+5. 保活（盯新议题/新评论，会话关了也盯）：
+   - 一次性：`python3 tools/watch_issues.py --once`；常驻：`python3 tools/watch_issues.py --announce`
+   - 定时：cron 任务 `cdp-issue-watch`（每 5 分钟跑 `~/.hermes/scripts/cdp-watch-issues.sh`，`no_agent`，无事不出声）
+   - 有新内容 → 走 `~/.hermes/agent-hooks/notify-needs-you.py` 推 QQ + 手机；状态/事件在 `/vol1/1000/aicache/cdp-watch/`
+   - 我自己的评论正文带 `<!--hermes-->` 标记，盯守会忽略它们，不会自己推自己
 
 ## 验证状态（一句话）
 

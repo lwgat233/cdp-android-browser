@@ -1,9 +1,9 @@
 {
  "project": "cdp",
- "testVersion": "测试-20260921-1518-07",
- "feature": "按键黑白与下载行三键",
+ "testVersion": "测试-20260922-1434-08",
+ "feature": "首页小app显示修复",
  "featureId": "apps",
- "builtAt": "2026-09-21 15:18:42",
+ "builtAt": "2026-09-22 14:34:17",
  "tool": "tools/pack_test.sh",
  "note": "这是专门测试上面这个功能的测试版构件"
 }

@@ -1,11 +1,11 @@
-CDP 归档清单（MANIFEST）：249 个文件
-生成时间：2026-09-22 14:19:50 CST
-交付构件：apk/cdp-debug.apk  42048287 字节  sha256 cec776e61d2818ec4b27be9dd914ce212a98fd8570acb5753d7ae586ef46dcc8
+CDP 归档清单（MANIFEST）：254 个文件
+生成时间：2026-09-22 14:59:19 CST
+交付构件：apk/cdp-debug.apk  42048460 字节  sha256 ef8fe2d421909d4b308b5e00f9631535bdbfd5447a268e2913434e153b5c0a06
 
-     29575  a6512abd5def0989  README.md
-     18105  1f29ae6897490902  MANIFEST.txt
+     31175  ebf5324b3f08eac4  README.md
+     18282  73a8367b975f8517  MANIFEST.txt
        103  3ae190ee021b7f37  apk/apk-sha256.txt
-  42048287  cec776e61d2818ec  apk/cdp-debug.apk
+  42048460  ef8fe2d421909d4b  apk/cdp-debug.apk
   42041602  f60c0675ffb11347  apk/测试版/cdp-28条收尾-aria2与省电排序-测试-20260921-1155-03.apk
       1892  7d1ae45fbaf6955e  apk/测试版/cdp-28条收尾-aria2与省电排序-测试-20260921-1155-03.txt
   42035529  9f80ca7b66555a7d  apk/测试版/cdp-列表行两行制与下载三键-测试-20260921-1357-05.apk
@@ -16,6 +16,8 @@ CDP 归档清单（MANIFEST）：249 个文件
       1280  7f70822045f171dc  apk/测试版/cdp-按键黑白与下载行三键-测试-20260921-1518-07.txt
   42032676  5b7b60d31b17fa1c  apk/测试版/cdp-用户追加五条-删录屏无障碍_下到系统目录_首页修复_嗅探按文件_录制重排-测试-20260921-1259-04.apk
       1484  6021cb3620067471  apk/测试版/cdp-用户追加五条-删录屏无障碍_下到系统目录_首页修复_嗅探按文件_录制重排-测试-20260921-1259-04.txt
+  42048460  ef8fe2d421909d4b  apk/测试版/cdp-首页小app显示修复-测试-20260922-1434-08.apk
+      1262  ca8cf350c4c96361  apk/测试版/cdp-首页小app显示修复-测试-20260922-1434-08.txt
   42031029  29566115e7c97fe8  apk/测试版/cdp-首页小app网格-测试-20260920-2330-01.apk
       1367  1a3788fe52c5cd35  apk/测试版/cdp-首页小app网格-测试-20260920-2330-01.txt
   42031268  fa8ddb924142e731  apk/测试版/cdp-首页小app网格-测试-20260921-0018-02.apk
@@ -38,7 +40,7 @@ CDP 归档清单（MANIFEST）：249 个文件
       6390  1846ecf2009e18fe  docs/界面模块化.md
       3373  8d3bb97b74f899d4  docs/界面规范-列表行.md
       1311  e3bc2ecad83effee  docs/覆盖自检.md
-     57177  510fb0dcc1f8a71d  docs/问题与需求登记.md
+     59167  7b54d789ca2f0d6f  docs/问题与需求登记.md
       8018  5a76a0ad52558e65  docs/需求清单-来自mydoc.md
       8352  e3c17ad41f3997c7  docs/需求清单-来自项目log.md
      32813  30484fa5860c0c58  docs/项目说明.md
@@ -97,6 +99,7 @@ CDP 归档清单（MANIFEST）：249 个文件
       4873  b5b218d950fc1453  evidence/51-指定位置为视频（sniff.pick）.txt
       3532  37474d5215df1ddd  evidence/52-多窗口三态（当前_后台_历史）.txt
       3656  7f4e3a7ff8c63b17  evidence/53-网络统计（上行恒0与代理口径）.txt
+      6768  b79a4d6a5537114a  evidence/54-首页小app不显示（桥只挂了控制台WebView）.txt
       3961  808e6b7a1c299af5  env/环境配方.txt
       1908  a74c3b1abe29b25d  tools/README.txt
      10537  a9cdfb600302997b  tools/check_coverage.py
@@ -105,10 +108,11 @@ CDP 归档清单（MANIFEST）：249 个文件
       1049  97f81c4257acaea8  tools/cookietest/serve.py
       2673  8ffdc0f9760efdcb  tools/gen_manifest.py
       4930  6504f8ad29b75504  tools/sniffpick/serve.py
+      6464  e546fa7531e31b08  tools/watch_issues.py
        544  d4a40a4e82198b0d  tools/watch_reqs.sh
         30  269f30ed50855ef2  source/cdp/app/proguard-rules.pro
       2854  e918539d85532788  source/cdp/app/src/main/AndroidManifest.xml
-       265  4874caa5e7aeab9e  source/cdp/app/src/main/assets/build-info.json
+       259  0476217bc92da61d  source/cdp/app/src/main/assets/build-info.json
      77209  0e4fea3ce1abd5dc  source/cdp/app/src/main/assets/inject/cdp-agent.js
       3392  f6eb5692b125d5a8  source/cdp/app/src/main/assets/player.html
       7136  47cd4d0d2fb4f859  source/cdp/app/src/main/assets/scripts/plaintext.user.js
@@ -149,7 +153,7 @@ CDP 归档清单（MANIFEST）：249 个文件
      10308  91e8f77e240b4b7a  source/cdp/app/src/main/java/dev/cdp/HlsDownloader.kt
      55840  e28b4d3a069895cd  source/cdp/app/src/main/java/dev/cdp/HttpControl.kt
      10923  9c046f6fafa23834  source/cdp/app/src/main/java/dev/cdp/KeepAliveService.kt
-    187817  7a97bad1ab7b9824  source/cdp/app/src/main/java/dev/cdp/MainActivity.kt
+    188426  edb956e4f877b111  source/cdp/app/src/main/java/dev/cdp/MainActivity.kt
      13438  5a39d2985bf9d685  source/cdp/app/src/main/java/dev/cdp/NavStore.kt
       8994  6de6d82e838139ac  source/cdp/app/src/main/java/dev/cdp/NetLog.kt
       9658  a5b0fdd07767b0cd  source/cdp/app/src/main/java/dev/cdp/NetTools.kt
@@ -210,6 +214,7 @@ CDP 归档清单（MANIFEST）：249 个文件
       5604  8dc2b08a6399d935  source/cdp/tools/verify_download_sysdir_and_home.py
      15275  54b685dc9108e142  source/cdp/tools/verify_edit_and_layout.py
       5825  4898d098eb4d2a92  source/cdp/tools/verify_home_asset.py
+      4718  82f13f0e2263db2a  source/cdp/tools/verify_home_grid.py
       8880  270b0c70ee1f5c29  source/cdp/tools/verify_kv_recmode.py
       6372  39443fc21e20b836  source/cdp/tools/verify_layout2.py
       6919  836c1a900b048299  source/cdp/tools/verify_list_rows.py

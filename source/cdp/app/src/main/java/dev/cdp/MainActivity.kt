@@ -1115,6 +1115,11 @@ class MainActivity : Activity() {
 
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
 
+        // 首页（start.html）就加载在**这个** WebView 里，原生桥必须也挂上：
+        // 只挂控制台那个 WebView 的话，首页里 window.cdpNative 不存在，
+        // 小 app 网格会静默拿不到数据（议题 #1）。
+        attachNativeBridge(browser)
+
         // 下载：长按链接后菜单里的「下载链接」走这个回调。
         // 按用户要求**不交给系统下载器**：App 自己拉、自己存到私有目录，
         // 不弹系统通知、不申请存储权限、不依赖外部 App；进度与结果都写进 App 日志。
@@ -2405,6 +2410,45 @@ class MainActivity : Activity() {
 
     // ------------------------------------------------------------------ 控制台 WebView
 
+    /**
+     * 给一个 WebView 挂原生桥（`window.cdpNative`）。
+     *
+     * **两个 WebView 都要挂**（议题 #1「主页小 app 无法显示」的真因）：
+     * 首页 `start.html` 跑在 `browser` 里、控制台跑在 `console` 里；
+     * 桥只挂在 `console` 时，首页里 `window.cdpNative` 是 `undefined` →
+     * 前端静默退化成"演示假数据"（transport.js 的 demo 分支）→
+     * 小 app 网格一个都不渲染，只剩一个「＋ 添加应用」和一行"原生桥没响应"。
+     * 允许来源限定为 assets 源与本机控制口源，其它站点拿不到这个对象。
+     */
+    private fun attachNativeBridge(wv: WebView) {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return
+        WebViewCompat.addWebMessageListener(
+            wv, "cdpNative",
+            setOf(ASSET_ORIGIN, "http://127.0.0.1:" + runCatching { http.status().optInt("port", 8848) }.getOrDefault(8848)),
+            object : WebViewCompat.WebMessageListener {
+                override fun onPostMessage(
+                    view: WebView, message: WebMessageCompat, sourceOrigin: Uri,
+                    isMainFrame: Boolean, replyProxy: androidx.webkit.JavaScriptReplyProxy
+                ) {
+                    val data = message.data ?: return
+                    try {
+                        val o = JSONObject(data)
+                        val id = o.optString("id")
+                        val op = o.optString("op")
+                        val args = o.optJSONObject("args") ?: JSONObject()
+                        main.post {
+                            bridge.dispatch(op, args) { r ->
+                                r.put("id", id)
+                                replyProxy.postMessage(r.toString())
+                            }
+                        }
+                    } catch (e: Exception) {
+                        replyProxy.postMessage(JSONObject().put("ok", false).put("error", "坏消息: ${e.message}").toString())
+                    }
+                }
+            })
+    }
+
     private fun setupConsole() {
         val s = console.settings
         s.javaScriptEnabled = true
@@ -2416,36 +2460,7 @@ class MainActivity : Activity() {
             override fun shouldInterceptRequest(view: WebView, req: WebResourceRequest): WebResourceResponse? =
                 intercept(req.url.toString())
         }
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
-            WebViewCompat.addWebMessageListener(
-                // 允许来源必须**同时**包含 assets 源与本机控制口源：
-                // 控制台现在由控制口提供（no-store，避免 WebView 缓存旧 UI），
-                // 来源没写全的话 window.cdpNative 不会注入，界面所有调用会静默走演示假数据。
-                console, "cdpNative",
-                setOf(ASSET_ORIGIN, "http://127.0.0.1:" + runCatching { http.status().optInt("port", 8848) }.getOrDefault(8848)),
-                object : WebViewCompat.WebMessageListener {
-                    override fun onPostMessage(
-                        view: WebView, message: WebMessageCompat, sourceOrigin: Uri,
-                        isMainFrame: Boolean, replyProxy: androidx.webkit.JavaScriptReplyProxy
-                    ) {
-                        val data = message.data ?: return
-                        try {
-                            val o = JSONObject(data)
-                            val id = o.optString("id")
-                            val op = o.optString("op")
-                            val args = o.optJSONObject("args") ?: JSONObject()
-                            main.post {
-                                bridge.dispatch(op, args) { r ->
-                                    r.put("id", id)
-                                    replyProxy.postMessage(r.toString())
-                                }
-                            }
-                        } catch (e: Exception) {
-                            replyProxy.postMessage(JSONObject().put("ok", false).put("error", "坏消息: ${e.message}").toString())
-                        }
-                    }
-                })
-        }
+        attachNativeBridge(console)
         runCatching { console.clearCache(true) }   // 建控制台前再清一次（换了构件就不会跑到旧 UI）
         // 再给 URL 带一个"构建戳"：assets 会被 WebView 缓存，戳变了脚本 URL 就变，旧副本不会被命中
         val stamp = runCatching {

@@ -1,0 +1,97 @@
+议题 #1「主页小app无法显示添加」 —— 复现 / 真因 / 修后验收（原始输出）
+日期：2026-09-22    构件：测试-20260922-1434-08（首页小app显示修复）
+环境：无头模拟器 AVD=test35（Android 14 x86_64），adb emulator-5554，包名 dev.cdp
+
+────────────────────────────────────────────────────────────────────
+一、复现（修前，构件 = 上一版 apk/cdp-debug.apk，42048287 字节）
+
+首页 DOM 探针（node tools/cdp.mjs file --target start.html --file probe_home.js）：
+{"addExists":true,"addRect":{"x":16,"y":184,"w":88,"h":81},
+ "addStyle":{"display":"flex","visibility":"visible","opacity":"1","color":"rgb(215, 227, 238)"},
+ "addHTML":"<span class=\"ico\">＋</span><b>添加应用</b>",
+ "tiles":1,
+ "note":"读不到小 app 列表：原生桥没响应（点工具栏 ⌂ 重开首页）",
+ "appsHTML":"<a class=\"app add\" id=\"app-add\">…<div id=\"appgrid-note\" …>读不到小 app 列表：原",
+ "viewport":{"innerW":412,"innerH":776,"scrollY":0,"bodyH":350},
+ "bridge":"function","renderer":"appgrid.js"}
+
+控制口真值（curl http://127.0.0.1:8848/api/apps/list）：
+{"ok":true,"apps":[{"id":"a153uqy4ws","name":"控制台","url":"cdpctl://console?tab=page"},
+ {"id":"a153ur1bvy","name":"历史",…},{"id":"a153ur4dv5","name":"资源嗅探",…},{"id":"a153ur5k1b","name":"省电",…}]}
+
+结论：后端有 4 条，页面只画了 **1** 个磁贴（那个「＋添加应用」），并挂了一行取数失败提示。
+      「添加块」本身是在的 —— 用户报的其实是「加了的小 app 一个都不显示」。
+
+────────────────────────────────────────────────────────────────────
+二、桥的真相（同一次会话里两个页面各探一次）
+
+首页（browser WebView，asset 源）：
+{"url":"https://appassets.androidplatform.net/ui/start.html",
+ "cdpNative":"undefined","hasNativeFlag":false,"cdpCallType":"function"}
+控制台页（console WebView，控制口源）：
+{"native":"object","hasNative":true}
+
+→ 首页里 window.cdpNative 根本不存在；transport.js 在没有 native 时走 demo 分支返回
+  {ok:true, demo:true}，而 appgrid.js 明确把 demo:true 当失败（它要 r.ok===true && r.demo!==true）
+  → 再退到 fetch 又被混合内容策略拦掉（https 页面请求 http://127.0.0.1:8848）→ 最终 null → 画空 + 报错行。
+
+────────────────────────────────────────────────────────────────────
+三、真因（代码位置）
+
+MainActivity.kt：两个 WebView —— `browser = WebView(this)`（905 行，显示网页与首页）、
+`console = WebView(this)`（928 行，控制台浮层）。
+`WebViewCompat.addWebMessageListener(... "cdpNative" ...)` 原先只写在 `setupConsole()` 里，
+即**只挂在 console 上**；首页 start.html 是 browser 加载的（startPageUrl() 返回
+"$ASSET_ORIGIN/ui/start.html" 或控制口同址），所以拿不到桥。
+
+────────────────────────────────────────────────────────────────────
+四、修改
+
+1) 抽出 `attachNativeBridge(wv: WebView)`（含原来的 listener 全部逻辑），允许来源仍限定
+   ASSET_ORIGIN + "http://127.0.0.1:<控制口端口>"；
+2) `setupBrowser()` 里加 `attachNativeBridge(browser)`（在首次导航之前）；
+3) `setupConsole()` 里改用 `attachNativeBridge(console)`（行为不变）。
+
+────────────────────────────────────────────────────────────────────
+五、修后验收（新脚本 tools/verify_home_grid.py，读页内真实状态 + 控制口真实返回）
+
+$ python3 tools/verify_home_grid.py
+== 首页小 app 网格验收（议题 #1） ==
+  PASS  首页已就绪且用 appgrid.js 渲染 | renderer='appgrid.js' url=https://appassets.androidplatform.net/ui/start.html
+  PASS  原生桥 window.cdpNative 已注入 | typeof window.cdpNative = 'object'（undefined 说明桥没挂到这个 WebView）
+  PASS  小 app 磁贴数与后端一致 | 页面磁贴=4 / 控制口返回=4
+  PASS  「＋ 添加应用」入口在且可见 | #app-add 尺寸 = 88x81
+  PASS  页面上没有取数失败提示 | note=''
+-- 5/5 通过
+退出码=0
+
+功能级补充（点「＋添加应用」）：
+clicked
+{"modalText":"添加小 app\n✕","inputs":5}        ← 小窗真的弹出来了（标题「添加小 app」）
+
+端到端（控制口加一条 → 首页刷新后看它显不显示）：
+1) /api/apps/save?name=验收用&url=https://example.com/  → ok= True app数= 5
+2) 首页 location.reload() 后：
+   {"tiles":5,"names":["控制台","历史","资源嗅探","省电","验收用","添加应用"]}
+3) /api/apps/remove?id=a5hsldumt → ok= True 剩余= 4     ← 收尾已清理
+
+回归（控制台页不能被改坏）：
+{"native":"object","hasNative":true}
+
+────────────────────────────────────────────────────────────────────
+六、构件
+
+路径：apk/测试版/cdp-首页小app显示修复-测试-20260922-1434-08.apk
+大小：42048460 字节
+哈希：sha256 ef8fe2d421909d4b308b5e00f9631535bdbfd5447a268e2913434e153b5c0a06
+       （与 apk/cdp-debug.apk 同一份，逐字节相同；哈希由打包脚本同批算出，未手抄）
+包内 build-info.json：{"testVersion":"测试-20260922-1434-08","feature":"首页小app显示修复","featureId":"apps"}
+说明书：apk/测试版/cdp-首页小app显示修复-测试-20260922-1434-08.txt
+
+环境小插曲（如实记）：tools/pack_test.sh 最后一步 `adb install` 在内存吃紧时卡住（5 分钟未返回），
+掐掉后包一度从设备上消失；随后重装同一份 APK，模拟器已处于卡死状态（安装再次长时间无返回），
+于是**停掉模拟器腾内存**、不再纠缠环境。**本文件第五节的 5/5 验收与端到端结果，
+是在停掉模拟器之前、用与本节完全相同的那份 APK（同一 sha256）在同一台模拟器上跑出来的**，
+不依赖这次失败的重装。真机二次验证由用户做（见议题 #1 的回帖）。
+
+以上原始输出均由本机命令产生，未经编辑。
