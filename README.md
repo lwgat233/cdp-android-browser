@@ -104,6 +104,15 @@ APK 每个 42MB、一轮一份，进库会迅速膨胀；出处与校验靠 `apk
 - 远端首次推送后的核对：远端 HEAD sha 与本地一致、238 个 blob、0 个 `.apk`（与 `.gitignore` 约定一致）。
 - 换机器/重新登录：`gh auth login`（设备码，需账号本人确认一次）。
 
+## 许可
+
+- 本项目自身：**Apache-2.0**（全文见 `LICENSE`，版权行 `Copyright 2026 lwgat233`）。
+- 第三方组件（随 APK 分发）：ffmpeg-kit / FFmpeg / GnuTLS / nettle / GMP / libiconv / cpu_features /
+  smart-exception-java / AndroidX（WebKit·Core·Lifecycle·VersionedParcelable）/ Kotlin 标准库 ——
+  **各自许可与本源（引用）地址见 `THIRD-PARTY-NOTICES.md`**，Apache-2.0 §4(d) 要求的声明见 `NOTICE`，
+  LGPL-3.0 全文另存于 `legal/LGPL-3.0.txt`（APK 自己也带，在 `res/raw/`）。
+- 一句话口径：应用自身是 Apache-2.0；里面动态链接的 FFmpeg 那一套是 LGPL-3.0，属未修改共享库、源码地址已在声明里给出。
+
 ## 目录结构
 
 ```

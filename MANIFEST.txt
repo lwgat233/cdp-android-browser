@@ -1,9 +1,9 @@
-CDP 归档清单（MANIFEST）：245 个文件
-生成时间：2026-09-22 14:12:19 CST
+CDP 归档清单（MANIFEST）：249 个文件
+生成时间：2026-09-22 14:19:50 CST
 交付构件：apk/cdp-debug.apk  42048287 字节  sha256 cec776e61d2818ec4b27be9dd914ce212a98fd8570acb5753d7ae586ef46dcc8
 
-     28863  4fca669bb25532df  README.md
-     18105  7af533af8f3f8a31  MANIFEST.txt
+     29575  a6512abd5def0989  README.md
+     18105  1f29ae6897490902  MANIFEST.txt
        103  3ae190ee021b7f37  apk/apk-sha256.txt
   42048287  cec776e61d2818ec  apk/cdp-debug.apk
   42041602  f60c0675ffb11347  apk/测试版/cdp-28条收尾-aria2与省电排序-测试-20260921-1155-03.apk
@@ -246,4 +246,8 @@ CDP 归档清单（MANIFEST）：245 个文件
       8052  2da8eeadbe30d460  source/cdp/tools/verify_win_states.py
       6165  6aa0253b98f8a1ae  source/cdp/tools/verify_windows.py
        553  ff36674e1cc82a20  .gitignore
+     12026  7186bc01c9b2c389  LICENSE
+       465  34fcba951fc0fe35  NOTICE
+      3736  a09ac74fbdd2b0a0  THIRD-PARTY-NOTICES.md
+      7651  da7eabb7bafdf7d3  legal/LGPL-3.0.txt
       2712  67651af2d81ca3c9  log.md
