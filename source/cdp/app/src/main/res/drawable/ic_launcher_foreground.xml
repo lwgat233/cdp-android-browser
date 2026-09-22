@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 一个「鼠标指针 + 点击波纹」的抽象图形：CDP = 控制网页那个点 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#3BA7F0"
+        android:pathData="M38,30 L38,72 L48,62 L55,78 L62,75 L55,59 L70,59 Z" />
+    <path
+        android:strokeColor="#7ED0FF"
+        android:strokeWidth="2.4"
+        android:pathData="M54,54 m-24,0 a24,24 0 1,0 48,0 a24,24 0 1,0 -48,0" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.4"
+        android:pathData="M54,54 m-33,0 a33,33 0 1,0 66,0 a33,33 0 1,0 -66,0" />
+</vector>

@@ -1,0 +1,33 @@
+
+[1m0. 前置：HTTP 控制口 + 测试页[0m
+  控制口: {'running': True, 'port': 8848, 'bind': '127.0.0.1', 'url': 'http://127.0.0.1:8848/api/status', 'requests': 906}
+  [32mPASS[0m 控制口在跑
+  清掉旧脚本：{"ok":true,"removed":11}
+  页面: {"t":"CDP 自动化测试页","vw":393,"vh":732,"dpr":2.75,"scrollY":0}
+  计数: {"easy":0,"div":0,"covered":0,"cover":0,"deep":0,"link":0,"afterVideo":0}
+
+[1m1. 对照组：普通 <button> —— 真实触摸注入 + 坐标精度[0m
+  App 结果: {"locate":{"ok":true,"strategy":"id","score":100,"tried":["id"],"el":{"tag":"button","id":"easyBtn","cls":"","text":"普通按钮","selector":"#easyBtn","box":{"x":23,"y":131,"w":85,"h":42,"cx":65,"cy":152},"visible":true},"inViewport":true,"partiallyVisible":true,"anchorUsed":null,"diag":{"tag":"button","isAnchor":fal
+  [32mPASS[0m 点着了（via=native-touch）
+  [32mPASS[0m isTrusted=true（真实触摸事件，不是 JS 合成）
+  [32mPASS[0m 页面侧计数 easy=1
+  页面自记几何: {"name":"doc","type":"pointerdown","trusted":true,"clientX":65,"clientY":152,"elLeft":23,"elTop":131,"elW":85,"elH":42,"localX":42,"localY":21,"inside":true,"vw":393,"vh":732}
+    -> 相对元素左上角 (42,21)，元素 85x42，偏差 (0.5,0.0)，inside=True
+  [32mPASS[0m 命中点落在元素内部且基本居中（±4px）
+
+[1m2. 关键场景：不是 <a>、只认 pointerup 的 div 按键[0m
+  先证明「JS 直接 click() 打不动它」——这正是这类按键的痛点
+  [32mPASS[0m 对照组成立：el.click() 之后计数仍是 0（所以必须靠真实事件注入）
+  App 结果: {"locate":{"ok":true,"strategy":"id","score":100,"tried":["id"],"el":{"tag":"div","id":"divBtn","cls":"","text":"下一章（div，只认 pointerup）","selector":"#divBtn","box":{"x":23,"y":257,"w":248,"h":53,"cx":147,"cy":283},"visible":true},"inViewport":true,"partiallyVisible":true,"anchorUsed":null,"diag":{"tag":"
+  [32mPASS[0m 点着了（via=native-touch，isTrusted=True）
+  [32mPASS[0m 页面侧计数 div=1（真的触发了它的 pointerup 处理器）
+
+[1m3. 被浮层盖住的按钮：诊断要说清原因，不能假装成功[0m
+  App 结果: {"locate":{"ok":true,"strategy":"id","score":100,"tried":["id"],"el":{"tag":"button","id":"coveredBtn","cls":"","text":"被盖住的按钮","selector":"#coveredBtn","box":{"x":23,"y":392,"w":348,"h":64,"cx":197,"cy":424},"visible":true},"inViewport":true,"partiallyVisible":true,"anchorUsed":null,"diag":{"tag":"button",
+  诊断: {"ok":true,"el":{"tag":"button","id":"coveredBtn","cls":"","text":"被盖住的按钮","selector":"#coveredBtn","box":{"x":23,"y":392,"w":348,"h":64,"cx":197,"cy":424},"visible":true},"diag":{"tag":"button","isAnchor":false,"hasOnclickAttr":false,"onclickProp":false,"role":"","tabindex":"","pointerEvents":"auto","cursor":"default","type":"","href":"","hitSelf":false,"coveredBy":"div#cover","hitAnc
+    -> hitSelf=False coveredBy=div#cover clickableAncestor=button#coveredBtn
+  [32mPASS[0m 诊断指出中心点被具体元素盖住
+  页面侧：浮层被命中 1 次，被盖按钮被命中 0 次
+  [32mPASS[0m 与真实手指一致：触摸落在浮层上，被盖按钮没被误触
+
+[1m小结：通过 10 项 / 失败 0 项[0m

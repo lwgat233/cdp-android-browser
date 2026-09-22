@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>点我测试页</title>
+<style>
+  html,body{margin:0;height:100%;background:#101820;color:#e8f0f8;font:16px/1.6 system-ui,sans-serif}
+  #bigBtn{position:fixed;inset:0;background:#1f6feb;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;font-size:28px;color:#fff}
+  #bigBtn:active{background:#3b82f6}
+  #cnt{font-size:64px;color:#7ee787;margin-top:10px}
+  .tip{font-size:15px;color:#dbeafe;margin-top:14px}
+</style></head>
+<body>
+  <div id="bigBtn">
+    <div>整屏都是可点区（坐标录制/回放用这一页）</div>
+    <div id="cnt">0</div>
+    <div class="tip">每点到一次，计数 +1；脚本回放也该让它 +1</div>
+  </div>
+  <script>
+    window.__hits = 0;
+    document.getElementById('bigBtn').addEventListener('click', function (e) {
+      window.__hits++;
+      document.getElementById('cnt').textContent = String(window.__hits);
+      window.__lastTrusted = (e && e.isTrusted) ? true : false;
+    });
+  </script>
+</body></html>

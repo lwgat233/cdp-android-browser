@@ -1,0 +1,61 @@
+控制口安全加固 + 界面 CSP · 原始证据
+=====================================
+时间：2026-09-20 凌晨；构件：apk/cdp-debug.apk  sha256 90c08cfbd0391e49c0c9cfad955a4c96…（41715831 字节）
+环境：Android 14 x86_64 模拟器；控制口 127.0.0.1:8848（adb forward）
+跑法：python3 tools/verify_security.py   → **18 / 18 通过**
+
+为什么这么测：把"App 自己的浏览器"当成**局域网里的另一台设备** ——
+模拟器自己的地址是 10.0.2.15，让它去访问 http://10.0.2.15:8848/... 时，
+服务端看到的来源地址就不是 127.0.0.1，正好走"非本机"那条分支（不用真开第二台机器）。
+
+逐项（脚本原始输出节选）
+------------------------
+[0] 状态归位（敏感接口关闭 + 只绑本机）
+[1] 默认态
+  PASS 控制口在跑，绑的是 127.0.0.1                       → 127.0.0.1
+  PASS 本机能取到令牌（只在本机可用）                      → 906ee8c4025a41a7b42a3d88
+  PASS 安全状态里的判决是「只绑本机」                      → 只绑本机：局域网里的设备连不上（最安全）
+[2] 绑到局域网
+  PASS 绑定范围变成 0.0.0.0                               → 0.0.0.0
+  PASS 非本机不带令牌 → 被拒（403 且说明要令牌）           → {"ok":false,"error":"需要的访问令牌没给或不对：URL 上加 ?t=<token>…
+  PASS 非本机带对令牌 → 放行（看得到 App 的版本）          → {"ok":true,"app":"CDP","version":"0.1.0",…
+  PASS 令牌本身不外带（非本机取令牌被拒，响应里没有令牌）  → {"ok":false,"error":"令牌只能在本机取"}
+[3] 敏感接口
+  PASS 未打开时：敏感接口被拒并说明原因                    → {"ok":false,"error":"这是敏感接口（/api/vault/state），局域网下默认关闭…
+  PASS 打开后安全状态里是「已打开」                        → True
+  PASS 打开后：敏感接口放行（返回 vault 的状态 JSON）      → {"ok":true,"unlocked":false,…}
+[4] 安全头与计数
+  PASS 响应带 X-Content-Type-Options: nosniff              → HTTP/1.1 200 OK … nosniff
+  PASS 响应带 Referrer-Policy: no-referrer                 → … no-referrer
+  PASS 被拒次数有记录（说明真的拒过）                      → 43
+[5] 界面 CSP
+  PASS CSP 真的拦住了页面里对外部图片的请求                → {"d":"img-src","b":"http://example.com/csp-probe.png"}
+  PASS CSP 的 meta 就在页面上                              → True
+  PASS 界面照常（24 个栏目还在）                           → 24
+[6] 收尾：恢复安全态
+  PASS 已恢复：只绑 127.0.0.1                              → 127.0.0.1
+  PASS 已恢复：敏感接口关闭                                → False
+
+实现要点（代码里怎么落）
+------------------------
+· `HttpControl.authCheck()`：本机（127.0.0.1/::1/…）免令牌；绑局域网后非本机必须带
+  `?t=<token>` 或 `X-CDP-Token`；敏感前缀（vault / cookies / downloads-get / history-清删 /
+  settings/set / eval / export / space.use / http.* / ai.context / grab / security.token）
+  在局域网下还要 `sensitiveLan` 打开才放行。拒绝一律 **HTTP 403 + 原因**（不是 200 里塞 error），
+  被拒会记数并写日志（面板能看到"被拒 N 次"）。
+· 令牌每次启动随机生成（UUID 去横线取 24 位）；只在**本机**能取（`GET /api/security/token`），
+  非本机哪怕带对令牌也不回令牌本身；界面里的「看一眼令牌 / 换一把新令牌」走 App 内通道。
+· 回包统一加 `X-Content-Type-Options: nosniff` 与 `Referrer-Policy: no-referrer`。
+· 控制台界面加 CSP：`default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline';
+  script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'`。
+
+测试自己踩到并改掉的两处（都写进 skill 了）
+--------------------------------------------
+1. **用 CDP 的 Runtime.evaluate 去 eval，验不出 CSP**：那是特权路径，不受页面 CSP 约束 ——
+   第一版断言得到 blocked=false 的假结论。改成"让页面自己去取一个 CSP 不允许的外部图片，
+   听 securitypolicyviolation 事件"，才真的能证明 CSP 生效（本证据里那条 violation 就是它）。
+2. **别按 CRLF 硬切 HTTP 回包**：`subprocess(text=True)` 会做通用换行转换，CRLF 到手里已是 LF，
+   按 CRLF+CRLF 切会切不开 → 正文带着响应头 → json 解析必然失败（第一轮 12/18 全是这类假红，
+   服务器其实回的是标准 CRLF，是测试脚本自己切错了）。
+3. 另外：脚本开头必须**先把状态归位**（打开敏感接口/绑局域网的操作会留在 App 里；
+   上一轮中途崩过一次，导致这一轮"默认态"断言全红）。这就是 skill 里那条"先归位再断言"。

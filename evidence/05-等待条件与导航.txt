@@ -1,0 +1,61 @@
+
+[1m0. 前置：页面得有一个真的 <video>，而且还没播过[0m
+  视频初始状态: {"videos":1,"plays":0,"ended":false,"dur":3,"next":0,"nextTrusted":false,"shown":"none"}
+    -> 视频数 1，时长 3s，已播 0 次
+  [32mPASS[0m 测试页上有 1 个真实 <video>（clip.webm）
+
+[1m1. 监听（录制）里插入「播放视频 → 等它播完 → 如果出现『下一个』就点它」[0m
+  [32mPASS[0m 开始监听
+  [32mPASS[0m 插入步骤1：播放视频（当前 1 步）
+  [32mPASS[0m 插入步骤2：等视频播完（当前 2 步）
+  [32mPASS[0m 插入步骤3：如果『下一个』出现就点它（当前 3 步）
+  停止并保存：{"ok":true,"id":"s1789716182666","steps":3,"inFrame":0}
+  [32mPASS[0m 停止并保存：3 步，拿到脚本 id
+
+[1m2. 回放：必须真的等到视频播完，再点下一个[0m
+    -> 总耗时 4274ms，整体 ok=True
+    -> 步骤1 播放视频 ok=True 注入坐标={"x": 183, "y": 366}
+    -> 步骤2 等待 videoEnded：等了 1824ms，轮询 7 次，ok=True
+    -> 步骤3 条件 elementExists=True → 走 then 分支，子步骤 1 个
+  [32mPASS[0m 三步依次生效，且等待步骤真的等到了 ended
+  页面侧视频状态: {"videos":1,"plays":1,"ended":true,"dur":3,"next":1,"nextTrusted":true,"shown":"inline-block"}
+    -> plays=1 ended=True dur=3
+  [32mPASS[0m 视频真的被播放了 1 次（不是假状态）
+  [32mPASS[0m ended 事件真的触发了（播放到结尾）
+    -> next=1 nextTrusted=True shown=inline-block
+  [32mPASS[0m 「下一个」被点中 1 次
+  [32mPASS[0m 点它用的是真实触摸（isTrusted=true）
+
+[1m3. 计数：再跑一次，累计次数与每步触发次数都要涨[0m
+    -> stats: 跑了 2 次，成功 2 次，上次耗时 4244ms，每步触发 [2, 2, 2]
+  [32mPASS[0m 运行计数正确累加（跑了 2 次、每步各触发 2 次）
+  [32mPASS[0m 页面侧计数也到 2（两轮各点中一次）
+
+[1m4. 条件为假时必须走 else，不能碰 then 里的东西[0m
+  建脚本结果 id=s1789716191883
+  [32mPASS[0m 已建一条「条件为假」的脚本（POST 请求体里带中文也不卡）
+    -> 条件 elementExists=False → 分支 else，子步骤 1
+  [32mPASS[0m 条件不成立 → 走 else，且 then 里的点击没被执行
+    -> H.counts.easy = 0
+  [32mPASS[0m then 里的点击确实没执行（easy 计数保持 0）
+
+[1m5. 历史与书签[0m
+    -> 历史条数 23，最新一条：CDP 自动化测试页 https://appassets.androidplatform.net/test/harness.html
+  [32mPASS[0m 导航被记进历史
+    -> {"ok": true, "added": true, "bookmark": {"id": "b1789716192681", "url": "https://appassets.androidplatform.net/test/harness.html", "title": "CDP 自动化测试页", "folder": "", "ts": 1789716192681}}
+  [32mPASS[0m 收藏当前页成功
+    -> 书签 2 条：['https://example.com/one-shot-1789715590', 'https://appassets.androidplatform.net/test/harness.html']
+  [32mPASS[0m 书签列表里有它
+    -> 当前 URL：https://appassets.androidplatform.net/test/harness.html
+  [32mPASS[0m 从书签/历史点开能真的导航过去
+    -> added=False removed={"id": "b1789716192681", "url": "https://appassets.androidplatform.net/test/harness.html", "title": "CDP 自动化测试页", "folde
+  [32mPASS[0m 再点一次取消收藏
+
+[1m6. 界面通道：✕ 真的能关控制台、下拉菜单能切到对应栏目[0m
+  [32mPASS[0m ✕ 走的是原生通道（日志里有『控制台已关闭（✕ 生效）』）
+    -> 日志尾部：['本就绪: https://appassets.androidplatform.net/test/harness.html', '[07:23:18.008] 控制台已关闭（✕ 生效）']
+  [32mPASS[0m 关闭动作真的落到了 App 日志里
+  控制台当前页签: {"on":"历史","hisTab":"tab on"}
+  [32mPASS[0m 从下拉菜单可直接落到「历史」栏目
+
+[1m小结：通过 24 项 / 失败 0 项[0m

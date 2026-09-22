@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>新标签页</title>
+<!--
+  首页（用户要求：像手机桌面一样的小 app 网格 + 一个搜索/地址栏）。
+  只放两样东西：搜索栏 + 小 app 网格（加号添加、图标+名字、点开、长按改/删）。
+  数据在 App 里（appsJson），本页从**本机控制口**读写（同源）；页面本身不注入任何东西到别的站点。
+  小窗用 modules/modal.js（全项目唯一的小窗渲染器），本页不再自造第二种。
+-->
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0B0F13; color: #E6EDF3;
+         font: 15px/1.6 -apple-system, "Noto Sans CJK SC", "PingFang SC", sans-serif;
+         padding: 22px 16px 40px; }
+  .wrap { max-width: 560px; margin: 5vh auto 0; }
+  .logo { font-size: 26px; font-weight: 700; letter-spacing: 2px; color: #6FC3FF; text-align: center; }
+  form { display: flex; gap: 8px; margin: 14px 0 22px; }
+  input[type=text] { flex: 1; background: #101821; border: 1px solid #1E2A38; color: #E6EDF3;
+         border-radius: 22px; padding: 12px 16px; font-size: 15px; outline: none; }
+  input[type=text]:focus { border-color: #2E6FA8; }
+  button { background: #16324B; color: #BEE1FF; border: 1px solid #23486B; border-radius: 22px;
+         padding: 12px 18px; font-size: 14px; }
+  /* 小 app 网格：像手机桌面，一行 4 个，图标在上、名字在下 */
+  #apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 10px; margin-top: 4px; }
+  #apps .app { display: flex; flex-direction: column; align-items: center; text-decoration: none;
+         color: #D7E3EE; -webkit-user-select: none; user-select: none; }
+  #apps .ico { width: 54px; height: 54px; border-radius: 14px; display: flex; align-items: center;
+         justify-content: center; font-size: 22px; font-weight: 700; color: #fff;
+         overflow: hidden; position: relative; box-shadow: 0 1px 0 #0006 inset; }
+  #apps .ico img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  #apps .app b { font-size: 12px; font-weight: 500; margin-top: 6px; max-width: 72px;
+         text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #apps .app.add .ico { background: #16202B; border: 1px dashed #2E4157; color: #6FC3FF; font-size: 24px; }
+  #apps .app.add b { color: #5C6B7A; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">CDP</div>
+
+  <form onsubmit="go(event)">
+    <input id="q" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+           placeholder="搜索或输入网址" enterkeyhint="go">
+    <button type="submit">前往</button>
+  </form>
+
+  <div id="apps"></div>
+</div>
+
+<script src="transport.js"></script>     <!-- 原生桥（小 app 网格走它取数，来源无关） -->
+<script src="modules/fmt.js"></script>
+<script src="modules/modal.js"></script>
+<script src="modules/appgrid.js"></script>
+<script>
+  function go(e) {
+    e.preventDefault();
+    var v = (document.getElementById('q').value || '').trim();
+    if (!v) return false;
+    // 看起来像网址就直开；否则走 App 里设的搜索引擎（设置栏可换）
+    if (/^([a-z]+:\/\/|\/\/)/i.test(v)) location.href = v;
+    else if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(v)) location.href = 'http://' + v;
+    else location.href = 'cdpctl://search?q=' + encodeURIComponent(v);
+    return false;
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+项目名　　：cdp（安卓 WebView 浏览器 / 控制台）
+测试版本　：测试-20260921-1259-04
+测试的功能：用户追加五条-删录屏无障碍_下到系统目录_首页修复_嗅探按文件_录制重排（功能 id：apps）
+打包时间　：2026-09-21 13:00:41
+构件哈希　：sha256 5b7b60d31b17fa1c6d78fe835b5635b54f8eb677e51c96d81a8f4d2c5faa8e07
+构件大小　：42032676 字节
+APK 路径　：/vol1/1000/airesults/cdp/apk/测试版/cdp-用户追加五条-删录屏无障碍_下到系统目录_首页修复_嗅探按文件_录制重排-测试-20260921-1259-04.apk
+源码快照　：source/cdp（app/src/main/assets/build-info.json 里写着同一个测试版本，装上去能对得上）
+包名/入口 ：dev.cdp / dev.cdp.MainActivity
+
+怎么装：
+  adb install -r cdp-用户追加五条-删录屏无障碍_下到系统目录_首页修复_嗅探按文件_录制重排-测试-20260921-1259-04.apk
+怎么确认装的是这一版：
+  curl -s http://127.0.0.1:8848/api/status          # 看版本与 build-info
+  adb shell 'cat /data/data/dev.cdp/files/... '     # 或界面「介绍 ▸ 版本」
+该跑哪些验收：
+    要跑 1 个脚本：verify_appgrid.py
+  （按用户要求：只测这个功能，不跑全量；先 tools/env_health.py 确认环境 READY）
+
+说明：
+  这是"只测一个功能"的测试版构件，放在 apk/测试版/ 下，文件名自带功能与版本；
+  同一份说明书与本 APK 一一对应（哈希可核）。

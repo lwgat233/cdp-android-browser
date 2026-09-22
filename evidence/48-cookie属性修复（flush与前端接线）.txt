@@ -1,0 +1,52 @@
+B-82 / B-83 修复与验收（Cookie 属性的"无效值"）
+==============================================
+时间：2026-09-22   设备：模拟器 test35（Android 14 x86_64，docker 无头）
+构件：apk/cdp-debug.apk  42036808 字节
+      sha256 e27d60af2f64efd744c5536cb6bbb1aafdff304a959e516f0dbecad678d47599
+构建：gradle --no-daemon --offline :app:assembleDebug -Pkotlin.compiler.execution.strategy=in-process → EXIT=0（1m5s）
+测试页：tools/cookietest/serve.py（项目自带；宿主 8899；设备走 http://10.0.2.2:8899/）
+
+【改了什么】
+后端 source/cdp/app/src/main/java/dev/cdp/CookieDb.kt
+  1) attrs() 读库前先 `CookieManager.getInstance().flush()` —— Chromium 批量提交，不 flush 时刚写的 cookie 库里 0 行（实验见 evidence/47）；
+  2) merge() 若列表里一条都对不上，就等一拍再读（最多 3 × 200ms）—— flush 后仍晚一拍的情况也能出属性；
+  3) 属性里加 `expiresMs`（机器可读的过期毫秒，0=会话期），界面据此算"有效期还剩几天"；
+  4) 库里没有这条时挂 `attrMissing`（如实说"还没有"，不再假装 Secure/HttpOnly 是"否"）；
+  5) 副本连同 `-wal`/`-journal` 一起删（B-83 的垃圾）。
+后端 MainActivity.kt：cookieDetail 的注释与 note 改成事实（属性能读到，读前先 flush）。
+前端 assets/ui/app.js
+  6) 删掉那一行**写死的属性文案**（旧 2441-2444 'Android 只给 名称=值；HttpOnly/Secure/Path/过期时间系统不提供'）——
+     cookie 行是交互行，走的本来就是可编辑小窗，那份 data-fields 是第二份真身，去掉；
+  7) editCookie() 用真值预填：`有效期（天，0=会话期）` 由 expiresMs 反算（原来写死 0 = 用户看到的"无效值"）、
+     Secure/HttpOnly 用真属性，并补三行只读信息：过期时间 / 创建时间 / 最后使用（属性缺失时改显 attrMissing 那句话）。
+
+【验收 1：API 面 —— 清空 → 打开测试页 → **不等**就读（旧版这里要等 60 秒）】
+$ python3 tools/verify_cookie_attrs.py
+  == 1. API 面：清空 → 打开测试页 → **立刻**读（不等 60 秒） ==
+  PASS hocookie httpOnly=True（刚写的、没等）
+  PASS hocookie 过期时间是真日期：2026-09-23 02:12:44
+  PASS 属性来源于 cookie 库（attrFrom 有值）
+  PASS 带机器可读的 expiresMs=1790129564657（界面按它算有效期）
+  PASS 会话 cookie 如实显示「会话期」
+
+【验收 2：界面面 —— 真手指点行 → 小窗里读属性】
+  == 2. 界面面：真手指点 hocookie 行 → 小窗里读属性 ==
+   真手指点 (206,251)                      ← 坐标由 /api/view/box 口径的 DOM rect 现测，不是写死
+  PASS 小窗里有 HttpOnly 字段
+  PASS 小窗里读到了真实过期时间：['2026-09-23 02:12:47', '2026-09-22 02:12:44', '2026-09-22 02:12:47']
+  PASS 「有效期（天）」是算出来的真值 1（不再是写死的 0）
+  PASS 写死的道歉文案已删
+  PASS HttpOnly/Secure 的开关是真值（select 值含 1）：["0","1"]
+
+  结果：10 PASS / 0 FAIL
+
+【环境自检（装包后按 B-54 先跑）】
+  python3 tools/env_health.py → 结论：READY（含"构件已归档且哈希一致 e27d60af2f64efd7…"）
+
+【对照：修之前是什么样】
+  · 同一套操作，打开测试页 3 秒读库该域 **0 行** → 属性全空（evidence/47 实测）；
+  · 界面小窗里的"有效期（天）"恒为 0、"HttpOnly" 恒为否、属性那行是那句写死文案。
+
+【测试脚本自身的一处修正（记下来，避免以后误判）】
+  verify_cookie_attrs.py 第一版断言"小窗 textContent 里含 2026-" → FAIL：只读字段的值在 input 的 value 里，
+  textContent 只有标签。改成读 input/select 的 value 后 10/10。**产品没问题，是断言读错了地方。**

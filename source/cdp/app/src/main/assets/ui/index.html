@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'">
+<title>CDP 控制台</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="banner hide" id="banner">没有原生通道：界面进入演示模式（只能在桌面浏览器里看样式）</div>
+
+<header>
+  <button id="drawerBtn" title="栏目">☰</button>
+  <div class="brand">CDP <span class="ver" id="ver">…</span></div>
+  <button id="close">✕</button>
+</header>
+
+<!-- 竖排抽屉：一束一条一条往下排（不是横向横幅） -->
+<div id="scrim"></div>
+<nav id="drawer">
+  <div class="drawerTitle">栏目（7 个归类集合 ▸ 每个集合下是它的栏目）</div>
+  <div class="drawerSearch"><input id="drawerSearch" placeholder="找功能 / 栏目…（输入就过滤）"></div>
+  <div id="tabs"><!-- 由 registry.js 的登记表生成，不手写按钮 --></div>
+  <div class="drawerNow" id="drawerNow">-</div>
+  <div class="drawerHint dim" id="drawerHint">-</div>
+</nav>
+
+<!-- browse ▸ 页面与元素（4 个板块） -->
+<section class="tab on" id="tab-page" data-coll="browse">
+  <div class="card" data-board="page-status" data-tab="page" data-order="10">
+    <div class="label">当前页面</div>
+    <div class="row"><span class="k">地址</span><span class="v" id="p-url">-</span></div>
+    <div class="row"><span class="k">标题</span><span class="v" id="p-title">-</span></div>
+    <div class="row"><span class="k">视口</span><span class="v" id="p-view">-</span></div>
+    <div class="row"><span class="k">模式</span><span class="v" id="p-mode">-</span></div>
+    <div class="hint"><input id="f-q" class="mini" placeholder="页内查找：输入词，回车下一个">
+      <button id="f-next">下一个</button> <button id="f-prev">上一个</button> <button id="f-clear">清除高亮</button></div>
+    <div class="hint dim" id="f-state">-</div>
+    <div class="hint"><button id="p-refresh">刷新状态</button>
+      <button id="p-pick">🎯 拾取元素（不用看源码）</button>
+      <button id="p-more">更多 ▾</button></div>
+    <div class="moreBox hide" id="p-morebox">
+      <div class="hint"><button id="p-bookmark">收藏本页</button> <button id="p-mute">🔇 静音此页</button>
+        <button id="p-share">📤 分享</button></div>
+    </div>
+    <div class="hint dim">点「拾取元素」→ 控制台自动收起 → 在页面上点你要操作的按钮 → 自动抓出选择器，可直接「点它」或「加为点击步骤」。</div>
+    <div class="hint dim" id="p-picked">还没拾取过</div>
+  </div>
+  <div class="card" data-board="page-query" data-tab="page" data-order="20">
+    <div class="label">找元素（选择器或文字，二选一）</div>
+    <input id="q-sel" placeholder="#id / .class / div.foo">
+    <input id="q-text" placeholder="按文字找，例如：下一章">
+    <div class="hint">
+      <button id="q-run">查找</button>
+      <button id="q-diag">可点击性诊断</button>
+      <button id="q-click">点它</button>
+    </div>
+    <pre id="q-out" class="out">-</pre>
+  </div>
+  <div class="card" data-board="page-click-xy" data-tab="page" data-order="30">
+    <div class="label">按坐标点（真实触摸）</div>
+    <div class="row"><span class="k">x / y</span><span class="v"><input id="c-x" class="mini" placeholder="x"> <input id="c-y" class="mini" placeholder="y"></span></div>
+    <div class="row"><span class="k">距底部</span><span class="v"><input id="c-ab" class="mini" placeholder="距底部像素"> <button id="c-run">点</button></span></div>
+    <pre id="c-out" class="out">-</pre>
+  </div>
+  <div class="card" data-board="page-video-cond" data-tab="page" data-order="40">
+    <div class="label">视频 / 条件（脚本里「等」什么就靠这些）</div>
+    <div class="hint"><input id="v-sel" class="wide" placeholder="视频选择器，留空=页面里第一个 video">
+      <button id="v-state">看视频状态</button> <button id="v-play">播放</button> <button id="v-check">查「播完了吗」</button></div>
+    <div class="hint"><button id="v-refresh">看当前页所有视频的状态</button>
+      <button id="v-info">用系统解析器看视频信息</button> <button id="v-sys">交给系统播放器</button></div>
+    <div class="hint dim">说明：内置了 ffmpeg（ffmpeg-kit-min，LGPL）。「视频信息」仍优先用 Android 自带解析器（快、够用），读到就读、读不到会如实说；要用 ffmpeg 探测/拉流见下面对应入口。</div>
+    <pre id="v-out" class="out">-</pre>
+  </div>
+</section>
+
+<!-- 用户要求：控制台里不要「窗口」栏——新建/切换/关闭只在浏览器地址栏后面那个「▤」图标里 -->
+
+<!-- browse ▸ 页面工具（1 个板块） -->
+<section class="tab" id="tab-tools" data-coll="browse">
+  <div class="card" data-board="tools-translate" data-tab="tools" data-order="10">
+    <div class="label">翻译（没配端点会如实说"没配"，不假装翻出来）</div>
+    <div class="hint"><input id="tr-ep" class="wide" placeholder="翻译端点（POST {"text","from","to"} → {"text"}）">
+      <button id="tr-save">保存端点</button> <button id="tr-state">看状态</button></div>
+    <div class="hint"><input id="tr-text" class="wide" placeholder="要翻的文本"> <button id="tr-go">翻译</button></div>
+    <div class="hint dim" id="tr-out">-</div>
+  </div>
+</section>
+
+<!-- auto ▸ 录制与回放（4 个板块） -->
+<section class="tab" id="tab-rec" data-coll="auto">
+  <div class="card" data-board="rec-1" data-tab="rec" data-order="10">
+    <div class="label">监听与录制（一个列表干完所有事）</div>
+    <div class="hint">录制方式：
+      <select id="r-mode">
+        <option value="element">元素录制（记选择器/文字，元素挪了也能找回来）</option>
+        <option value="coord">坐标录制（只看点在哪，不看元素）</option>
+      </select></div>
+    <div class="hint">
+      <button id="r-start">⏺ 开始监听</button>
+      <button id="r-stop">⏹ 停止并保存</button>
+      <button id="r-clear">清空步骤</button>
+    </div>
+    <div class="row"><span class="k">状态</span><span class="v" id="r-state">未开始</span></div>
+    <!-- 步骤列表放上面（用户 N5：步骤框在上面）；列表最底部是「＋ 添加步骤」，可以一直加 -->
+    <div class="listbox" id="r-steps"><div class="dim2">步骤列表（下面那个「＋ 添加步骤」不用先开监听就能加）</div></div>
+    <div class="hint">把某条录制脚本的步骤载进来编辑：<select id="r-loadsel"></select>
+      <button id="r-loadgo">载入到步骤列表</button></div>
+  </div>
+  <div class="card" data-board="rec-dots" data-tab="rec" data-order="45">
+    <div class="label">小点（坐标步骤在屏幕上的落点）</div>
+    <div class="row"><span class="k">页面上显示小点</span><span class="v" id="dot-state">-</span></div>
+    <!-- 第 24 条：不再在界面里申请"无障碍/录制"权限。小点要盖在视频上才需要那个系统开关，
+         没授权时只画在页面里（下面那行状态会说清楚），入口收进文档，界面不再摆"去开权限"的键。 -->
+    <div class="hint"><button id="dot-toggle">开 / 关小点</button></div>
+  </div>
+  <!-- N5：录制脚本列表 + 回放/运行**合成一块**，就摆在步骤框下面（不再散着摆两块） -->
+  <div class="card" data-board="rec-list" data-tab="rec" data-order="35">
+    <div class="label">录制脚本（点某一行 = 载入 / 回放 / 删除）</div>
+    <div class="hint"><select id="r-script"></select>
+      <input id="r-times" class="mini" inputmode="numeric" value="1" placeholder="次数">
+      <button id="r-replay">回放这条</button> <button id="r-runall">▶ 跑当前队列</button>
+      <button id="rc-reload">刷新</button></div>
+    <div class="listbox" id="rec-list">-</div>
+    <div class="hint"><button id="rc-clear" class="danger">清空录制脚本</button></div>
+    <pre id="r-out" class="out">-</pre>
+  </div>
+</section>
+
+<!-- auto ▸ 脚本（2 个板块） -->
+<section class="tab" id="tab-scripts" data-coll="auto">
+  <div class="card" data-board="rec-import" data-tab="scripts" data-order="5">
+    <div class="label">导入录制脚本（粘贴 JSON 就存进脚本库）</div>
+    <textarea id="r-import" class="ta" placeholder='{"name":"学习通-下一章","kind":"recording","steps":[…]}'></textarea>
+    <div class="hint"><button id="r-import-go">导入并保存</button> <button id="r-import-clear">清空</button></div>
+    <pre id="r-import-out" class="out">-</pre>
+  </div>
+  <div class="card" data-board="scripts-list" data-tab="scripts" data-order="10">
+    <div class="label">用户脚本（内置 / 粘贴的）</div>
+    <div class="hint"><button id="sc-reload">刷新</button> <button id="sc-scan">扫描导入目录</button> <button id="sc-more">更多 ▾</button></div>
+    <div class="moreBox hide" id="sc-morebox"><div class="hint"><button id="sc-clear">清空全部脚本</button></div></div>
+    <div class="listbox" id="sc-list">-</div>
+  </div>
+  <div class="card" data-board="scripts-paste" data-tab="scripts" data-order="20">
+    <div class="label">粘贴 / 导入用户脚本</div>
+    <input id="sc-name" placeholder="脚本名">
+    <input id="sc-match" placeholder="@match，例如 *://*.chaoxing.com/*">
+    <textarea id="sc-code" class="ta" placeholder="// ==UserScript== … 或直接写 JS"></textarea>
+    <div class="hint"><button id="sc-save">保存脚本</button>
+      <input id="sc-url" class="wide" placeholder="油猴脚本直链"> <button id="sc-import">从网址导入</button></div>
+    <pre id="sc-out" class="out">-</pre>
+  </div>
+</section>
+
+<!-- auto ▸ 插件（3 个板块） -->
+<section class="tab" id="tab-plugins" data-coll="auto">
+  <div class="card" data-board="read-list" data-tab="plugins" data-order="10">
+    <div class="label">阅读 / 停留时间（单独栏目：能排序、搜索、删除）</div>
+    <div class="hint"><input id="rd-filter" class="wide" placeholder="搜网址/标题/域名">
+      <select id="rd-sort"><option value="time">按时长排</option><option value="ts">按最近排</option>
+        <option value="host">按域名排</option><option value="title">按标题排</option></select>
+      <button id="rd-go">查询</button></div>
+    <div class="listbox" id="rd-list">-</div>
+    <div class="hint dim">点一行（或长按）弹出小窗：打开这一页 / 删除 / 复制。数据只存在本机。</div>
+  </div>
+  <div class="card" data-board="read-chart" data-tab="plugins" data-order="20">
+    <div class="label">统计</div>
+    <div class="hint">
+      <select id="ch-src"><option value="read">阅读时长</option><option value="net">网络流量</option></select>
+      <select id="ch-range"><option value="live">实时（现在）</option><option value="hour">按小时</option><option value="day">按天</option><option value="month">按月</option><option value="year">按年</option></select>
+      <button id="ch-go">刷新</button>
+    </div>
+    <div class="hint dim" id="ch-sum">-</div>
+    <div id="ch-bar"></div>
+    <div id="ch-pie"></div>
+    <div id="ch-table"></div>
+    <div class="hint"><button id="rd-clear" class="danger">清空阅读记录</button></div>
+    <div class="hint dim" id="ch-note">-</div>
+  </div>
+</section>
+
+<!-- auto ▸ 终端与 ffmpeg（1 个板块） -->
+<section class="tab" id="tab-term" data-coll="auto">
+  <div class="card" data-board="term-main" data-tab="term" data-order="10">
+    <div class="label">伪终端（App 内命令解析器；Android 不允许应用 fork 系统 shell）</div>
+    <div class="hint dim" id="tm-cwd">~</div>
+    <pre class="listbox" id="tm-out" style="white-space:pre-wrap"></pre>
+    <div class="hint"><input id="tm-in" class="wide" placeholder="输入命令，回车执行（↑↓ 翻历史）">
+      <button id="tm-run">执行</button> <button id="tm-help">help</button> <button id="tm-ls">ls -l</button></div>
+    <div class="hint dim">能做：pwd/cd/ls/cat/head/tail/wc/mkdir/rm/mv/du/stat/find/grep/echo/date/df/md5/sha256/curl/net dns|tcp/clear；
+      不能做：任意可执行文件、管道、后台作业；路径限制在 ~ 内。ffmpeg 已内置：不带参数打 `ffmpeg` 会报版本与能力边界（能转封装、不能重编码）。</div>
+  </div>
+</section>
+
+<!-- privacy ▸ Cookie（1 个板块） -->
+<section class="tab" id="tab-cookies" data-coll="privacy">
+  <div class="card" data-board="cookie-main" data-tab="cookies" data-order="10">
+    <div class="label">Cookie（一个列表：当前页 + 历史 + 书签里出现过的站点；点一行弹小窗看详情 / 删除）</div>
+    <div class="hint"><input id="ck-filter" class="mini" placeholder="筛选域名 / 名字">
+      <button id="ck-all">刷新列表</button> <button id="ck-more">更多 ▾</button></div>
+    <div class="moreBox hide" id="ck-morebox">
+      <div class="hint"><input id="ck-domain" class="wide" placeholder="只看一个域名，例如 www.chaoxing.com">
+        <button id="ck-query">只查这个域名</button></div>
+      <div class="hint"><button id="ck-clear" class="danger">清空全部 Cookie</button></div>
+    </div>
+    <div class="hint dim" id="ck-out">-</div>
+    <div class="listbox" id="ck-list">-</div>
+    <div class="hint dim">Android 没有「列出全部 cookie」的接口，只能按域名问；所以全局列表是拿「当前页 + 历史 + 书签」里出现过的站点逐个问出来汇总的。
+      系统只给「名称 = 值」，HttpOnly / Secure / Path / 过期时间这些属性拿不到（不是没取）。</div>
+  </div>
+</section>
+
+<!-- privacy ▸ 密码库（1 个板块） -->
+<section class="tab" id="tab-vault" data-coll="privacy">
+  <div class="card" data-board="vault-main" data-tab="vault" data-order="10">
+    <div class="label">密码库（AES/GCM 加密，看/改都要先过锁屏验证）</div>
+    <div class="hint"><button id="pv-state">看状态</button> <button id="pv-unlock">解锁（锁屏验证）</button>
+      <button id="pv-lock">立刻锁上</button> <button id="pv-all">查看全部密码</button></div>
+    <!-- 隐藏的全局面板：点「查看全部密码」才出现（没解锁时只给一句"先过锁屏"） -->
+    <div id="pv-panel" class="hidden">
+      <div class="label">全部密码　<span id="pv-all-count" class="dim"></span>
+        <button id="pv-all-close" class="mini2">收起来</button></div>
+      <div class="listbox" id="pv-all-list"></div>
+    </div>
+    <div class="hint dim" id="pv-out">-</div>
+    <div class="listbox" id="pv-list">-</div>
+    <div class="hint"><input id="pv-site" class="wide" placeholder="站点（比如 example.com）"> <input id="pv-user" class="wide" placeholder="用户名"></div>
+    <div class="hint"><input id="pv-pass" class="wide" placeholder="密码"> <button id="pv-save">存进密码库</button>
+      <button id="pv-frompage">从这一页抓</button></div>
+    <div class="hint">随机密码：<input id="pv-len" class="small" value="16"> 位
+      <label><input type="checkbox" id="pv-up" checked>大写</label>
+      <label><input type="checkbox" id="pv-low" checked>小写</label>
+      <label><input type="checkbox" id="pv-dig" checked>数字</label>
+      <label><input type="checkbox" id="pv-sym" checked>符号</label>
+      <button id="pv-gen">生成</button></div>
+  </div>
+</section>
+
+<!-- privacy ▸ 拦截与名单（1 个板块） -->
+<section class="tab" id="tab-block" data-coll="privacy">
+  <div class="card" data-board="block-rules" data-tab="block" data-order="10">
+    <div class="label">拦截与名单（一份规则库：广告/统计域名 · 隐藏选择器 · 站点警告名单）</div>
+    <div class="row"><span class="k">拦截</span><span class="v" id="ab-state">-</span></div>
+    <div class="hint"><button id="ab-toggle">开 / 关拦截</button>
+      <select id="ab-mode">
+        <option value="both">两者都做（命中回空响应 + 隐藏元素）</option>
+        <option value="hide">只隐藏不阻断（避免被 JS 探测到）</option>
+        <option value="block">只阻断（回空响应）</option>
+      </select></div>
+    <div class="hint dim" id="ab-mode-out">-</div>
+    <div class="hint"><select id="bl-kind">
+        <option value="ad">广告 / 统计域名规则</option>
+        <option value="css">隐藏选择器（拦截但不渲染）</option>
+        <option value="warn">站点警告名单（照常看，只挂警告条）</option>
+      </select>
+      <input id="ab-new" class="mini" placeholder="要加 / 要删的一条"></div>
+    <div class="hint"><button id="ab-add">加进这一类</button> <button id="ab-remove">从这一类删掉</button>
+      <button id="ab-more">更多 ▾</button></div>
+    <div class="moreBox hide" id="ab-morebox">
+      <div class="hint"><button id="ab-reset">恢复内置规则</button> <button id="ab-clear" class="danger">清空这一类</button></div>
+      <div class="hint"><button id="ab-cos-push">把隐藏规则推到当前页</button></div>
+    </div>
+    <div class="hint dim">最近拦下的（最多 12 条）</div>
+    <div class="listbox" id="ab-recent">-</div>
+    <div class="hint dim">当前的规则（点一行弹小窗：删除 / 复制）</div>
+    <div class="listbox" id="ab-rules-box">-</div>
+    <div class="hint dim" id="s-block-state">-</div>
+  </div>
+</section>
+
+<!-- privacy ▸ 安全与隐身（2 个板块） -->
+<section class="tab" id="tab-security" data-coll="privacy">
+  <div class="card" data-board="security-http" data-tab="security" data-order="5">
+    <div class="label">控制口安全（绑定范围 / 访问令牌 / 敏感接口开关）</div>
+    <div class="row"><span class="k">绑定</span><span class="v" id="sh-bind">-</span></div>
+    <div class="row"><span class="k">令牌</span><span class="v" id="sh-token">-</span></div>
+    <div class="row"><span class="k">被拒</span><span class="v" id="sh-rejected">-</span></div>
+    <div class="hint dim" id="sh-verdict">-</div>
+    <div class="hint"><button id="sh-show">看一眼令牌（仅本机可取）</button>
+      <button id="sh-rotate">换一把新令牌</button>
+      <button id="sh-more">更多 ▾</button></div>
+    <div class="moreBox hide" id="sh-morebox">
+      <div class="hint"><button id="sh-sens">开 / 关：局域网下允许敏感接口</button></div>
+      <div class="hint"><button id="sh-copy">复制令牌</button></div>
+    </div>
+    <div class="hint dim">默认只绑本机（局域网里的设备连不上）。绑了局域网之后：非本机调用必须带
+      <code>?t=&lt;令牌&gt;</code> 或请求头 <code>X-CDP-Token</code>；
+      vault / cookie / Eval 这些敏感接口**默认关闭**，要在这里显式打开。令牌每次启动随机生成。</div>
+  </div>
+  <div class="card" data-board="security-page" data-tab="security" data-order="10">
+    <div class="label">网站安全（当前页 + 证书）</div>
+    <div class="hint dim" id="s-page">-</div>
+    <div class="hint"><button id="s-page-go">看当前页</button> <button id="s-cert-go">看当前站证书</button>
+      <input id="s-host" class="mini" placeholder="也可以手输主机"></div>
+    <div class="hint dim" id="sec-out">-</div>
+  </div>
+  <div class="card" data-board="security-incognito" data-tab="security" data-order="20">
+    <div class="label">隐身模式（无痕）</div>
+    <div class="row"><span class="k">状态</span><span class="v" id="st-incog">关</span></div>
+    <div class="hint"><button id="st-incog-toggle">开 / 关隐身模式</button></div>
+    <div class="hint dim">开着时不记历史；关掉的那一刻清除 cookie、localStorage 与无痕期间的下载记录与文件。</div>
+  </div>
+</section>
+
+<!-- media ▸ 网络（2 个板块） -->
+<section class="tab" id="tab-net" data-coll="media">
+  <div class="card" data-board="net-timeline" data-tab="net" data-order="10">
+    <div class="label">网络（请求时间线 + 统计 + 网络工具）</div>
+    <div class="hint dim" id="n-state">-</div>
+    <div class="hint"><input id="n-filter" class="mini" placeholder="筛选地址/主机">
+      <select id="n-kind" class="mini"><option value="all">全部类型</option></select>
+      <button id="n-reload">刷新</button> <button id="n-clear">清空</button>
+      <button id="n-toggle">开 / 关记录</button> <button id="n-to-stats">统计图</button></div>
+    <div class="listbox" id="n-list">-</div>
+    <div class="hint dim">说明：WebView 不把响应状态码/大小给应用，所以这里只能记“请求侧”信息；上/下行只统计应用自己搬运的字节（下载 / m3u8 分片 / 代理中继）。</div>
+  </div>
+  <div class="card" data-board="net-tools" data-tab="net" data-order="20">
+    <div class="label">网络工具（离线也能用）</div>
+    <div class="hint"><input id="t-host" class="mini" placeholder="主机，如 example.com">
+      <input id="t-port" class="mini" style="width:64px" placeholder="端口">
+      <button id="t-resolve">解析 IP</button> <button id="t-cert">看证书</button> <button id="t-tcp">测通路</button></div>
+    <div class="hint"><input id="t-url" class="wide" placeholder="测速地址（默认用 App 自带的本地测试源）">
+      <button id="t-speed">测速 3 秒</button> <button id="t-ip">本机 IP</button>
+      <button id="t-headers">看 header</button></div>
+    <div class="hint dim" id="t-out">-</div>
+  </div>
+</section>
+
+<!-- media ▸ 资源嗅探（3 个板块） -->
+<section class="tab" id="tab-sniff" data-coll="media">
+  <div class="card" data-board="sniff-list" data-tab="sniff" data-order="10">
+    <div class="label">嗅探到的资源（按文件类型分：.m3u8 / .mp4 / .ts / .jpg …）</div>
+    <div class="hint dim" id="sn-stats">-</div>
+    <div class="hint"><select id="sn-group">
+        <option value="all">全部</option>
+      </select>
+      <input id="sn-filter" class="mini" placeholder="筛选地址 / 站点">
+      <label class="dim"><input type="checkbox" id="sn-pageonly"> 只看当前页</label></div>
+    <div class="hint"><button id="sn-reload">刷新</button>
+      <button id="sn-scan">从页面里再找一遍</button>
+      <button id="sn-more">更多 ▾</button></div>
+    <div class="moreBox hide" id="sn-morebox">
+      <div class="hint"><button id="sn-download-all">下载全部 m3u8</button>
+        <button id="sn-audio-all">下载全部音频</button></div>
+      <div class="hint"><button id="sn-pick">指定位置为视频</button></div>
+      <div class="hint"><button id="sn-clear" class="danger">清空清单</button></div>
+    </div>
+    <div class="listbox" id="sn-list">-</div>
+    <div class="hint dim" id="sn-out">-</div>
+  </div>
+  <div class="card" data-board="sniff-add" data-tab="sniff" data-order="20">
+    <div class="label">手动添加地址</div>
+    <input id="sn-url" class="wide" placeholder="http://…/index.m3u8 或 mp4 / mp3 直链">
+    <div class="hint"><button id="sn-add">加进清单</button> <button id="sn-go">下载这个 m3u8（含分片）</button>
+      <button id="sn-play">用内置播放器打开</button> <button id="sn-pl-state">看播放器状态</button></div>
+    <div class="hint dim">音频直链（mp3 / m4a）直接走「下载」；HLS 音频可以用「转存 m4a」（只换容器，不重编码）。</div>
+  </div>
+  <div class="card" data-board="sniff-note" data-tab="sniff" data-order="30">
+    <div class="label">说明（边界，别当成 bug 报）</div>
+    <div class="hint dim">
+      ① 每条资源一行摘要，点行弹小窗：下载 / 用内置播放器打开 / 转存 m4a·mp4（只换容器不重编码）/ 投屏 / 复制；<br>
+      ② 同一路的分片（.ts / .m4s）合并成一条「分片 ×N」，不会把清单刷爆；<br>
+      ③ 用了 MSE（blob:）的站，直链不在请求层 —— 小窗里会说明，此时可看清单/分片，或换一个不是 MSE 的站；<br>
+      ④ 「只看当前页」：清空之后还在播的旧页面会重新登记，勾上它只看当前页。
+    </div>
+  </div>
+</section>
+
+<!-- media ▸ 下载（2 个板块） -->
+<section class="tab" id="tab-downloads" data-coll="media">
+  <div class="card" data-board="downloads-list" data-tab="downloads" data-order="10">
+    <div class="label">下载文件（App 自己下，不交给系统下载器）</div>
+    <input id="d-url" class="wide" placeholder="文件地址，例如 https://…/a.pdf">
+    <input id="d-name" class="wide" placeholder="保存成什么名字（可留空，按地址推断）">
+    <div class="hint"><button id="d-go">开始下载</button> <button id="d-reload">刷新列表</button></div>
+    <div class="hint dim">文件存在 App 私有目录（不弹系统通知、不申请存储权限）。网页里的下载链接、长按菜单里的「下载链接」走的是同一条链路。</div>
+    <div class="hint dim" id="d-tip">-</div>
+    <div class="listbox" id="d-list">-</div>
+  </div>
+  <div class="card" data-board="downloads-mode" data-tab="downloads" data-order="20">
+    <div class="label">下载方式（默认应用内自己下；也可以交给系统下载器或外面的 aria2）</div>
+    <div class="hint dim">下好的文件会**发布到系统「下载/cdp」目录**（分区存储下走 MediaStore），下载列表里能看到系统路径；
+      旧的（以前下在应用目录里的）在升级后已清空一次。</div>
+    <div class="hint"><select id="st-dl">
+        <option value="app">应用内自己下（默认：不弹通知、不要存储权限）</option>
+        <option value="system">系统下载器（会进系统下载列表 / 通知栏）</option>
+        <option value="aria2">aria2（交给你的 aria2，走 JSON-RPC）</option>
+      </select> <button id="st-dl-apply">应用</button></div>
+    <div class="hint"><input id="st-aria2-rpc" class="wide" placeholder="aria2 RPC 地址，例如 http://192.168.1.10:6800/jsonrpc">
+      <input id="st-aria2-token" class="wide" placeholder="RPC secret（没设就留空）"></div>
+    <div class="hint"><input id="st-aria2-dir" class="wide" placeholder="下载目录（可留空，用 aria2 默认）">
+      <button id="st-aria2-apply">保存 aria2 设置</button> <button id="st-aria2-test">试一下</button></div>
+    <div class="hint dim" id="st-dl-out">-</div>
+  </div>
+</section>
+
+<!-- records ▸ 历史（1 个板块） -->
+<section class="tab" id="tab-history" data-coll="records">
+  <div class="card" data-board="history-list" data-tab="history" data-order="10">
+    <div class="label">历史（点条目直接在浏览器里打开）</div>
+    <div class="hint"><input id="h-filter" class="mini" placeholder="筛选标题/网址">
+      <button id="h-reload">刷新</button> <button id="h-clear" class="danger">清空历史</button>
+      <button id="h-more">更多 ▾</button></div>
+    <div class="moreBox hide" id="h-morebox">
+      <div class="hint"><button id="h-export">导出到下载目录</button> <button id="h-export-json">导出 JSON</button></div>
+      <div class="hint"><input id="h-del-domain" class="mini" placeholder="按域名删，如 chaoxing.com">
+        <button id="h-del-domain-go">删除该域名历史</button></div>
+      <div class="hint"><input id="h-del-date" class="mini" type="datetime-local"> <button id="h-del-before">删早于它</button>
+        <button id="h-del-after">删晚于它</button></div>
+    </div>
+    <div class="hint dim" id="h-count">-</div>
+    <div class="listbox" id="h-list">-</div>
+  </div>
+</section>
+
+<!-- records ▸ 书签（1 个板块） -->
+<section class="tab" id="tab-bookmarks" data-coll="records">
+  <div class="card" data-board="bookmark-tree" data-tab="bookmarks" data-order="10">
+    <div class="label">书签（树形：文件夹可折叠）</div>
+    <div class="hint"><button id="b-reload">刷新</button> <button id="b-toggle">收藏 / 取消收藏当前页</button>
+      <button id="b-more">更多 ▾</button></div>
+    <div class="moreBox hide" id="b-morebox">
+      <div class="hint"><input id="b-newfolder" class="mini" placeholder="新建文件夹，如 学习通/期末">
+        <button id="b-mkfolder">新建文件夹</button></div>
+      <div class="hint"><input id="b-newurl" class="wide" placeholder="手动加书签网址（可留空=当前页）">
+        <button id="b-add">加书签</button></div>
+    </div>
+    <div class="tree" id="b-tree">-</div>
+    <div class="listbox" id="b-list">-</div>
+  </div>
+</section>
+
+<!-- records ▸ 一键导出（1 个板块） -->
+<section class="tab" id="tab-bundle" data-coll="records">
+  <div class="card" data-board="bundle-export" data-tab="bundle" data-order="10">
+    <div class="label">一键导出（勾选要带走的东西 → 打成一个 zip 放到系统「下载」目录）</div>
+    <div class="hint" id="b-parts">
+      <label><input type="checkbox" id="b-history" checked> 历史</label>
+      <label><input type="checkbox" id="b-bookmarks" checked> 书签</label>
+      <label><input type="checkbox" id="b-scripts" checked> 脚本</label>
+      <label><input type="checkbox" id="b-settings"> 设置（含代理/UA，注意隐私）</label>
+      <label><input type="checkbox" id="b-sniff"> 嗅探清单</label>
+      <label><input type="checkbox" id="b-adblock" checked> 拦截规则</label>
+    </div>
+    <div class="hint"><button id="b-export">导出选中项</button> <button id="b-import">从文件导入…</button></div>
+    <div class="hint dim" id="b-out">-</div>
+  </div>
+</section>
+
+<!-- api ▸ 控制口（4 个板块） -->
+<section class="tab" id="tab-api" data-coll="api">
+  <div class="card" data-board="api-http" data-tab="api" data-order="10">
+    <div class="label">本机 HTTP 控制口</div>
+    <div class="row"><span class="k">状态</span><span class="v" id="a-state">-</span></div>
+    <div class="hint"><button id="a-start">启动（只绑本机）</button> <button id="a-start-lan">启动（绑局域网）</button> <button id="a-stop">停止</button></div>
+    <div class="hint dim">默认 http://127.0.0.1:8848，可被电脑上的 curl / 脚本调用；局域网模式会绑 0.0.0.0。</div>
+  </div>
+  <div class="card" data-board="api-cdp" data-tab="api" data-order="20">
+    <div class="label">外部 CDP（debug 构件）</div>
+    <div class="hint"><button id="cdp-state">看状态</button> <button id="cdp-copy">复制调试地址</button></div>
+    <div class="hint dim" id="cdp-out">-</div>
+    <div class="hint dim">adb forward tcp:9222 localabstract:webview_devtools_remote_&lt;pid&gt;<br>之后可用标准 CDP 驱动页面；归档里的 tools/cdp.mjs 是零依赖示例。</div>
+  </div>
+  <div class="card" data-board="api-endpoints" data-tab="api" data-order="30">
+    <div class="label">接口清单（本机就能试）</div>
+    <div class="hint"><button id="ep-list">看清单</button> <button id="ep-copy">复制全部</button>
+      <button id="ep-probe">试一下控制口</button></div>
+    <div class="hint dim" id="ep-out">-</div>
+    <pre id="a-list" class="out">-</pre>
+  </div>
+  <div class="card" data-board="api-catalog" data-tab="api" data-order="40">
+    <div class="label">接口目录与组合接口（给别的软件 / LLM 看）</div>
+    <div class="hint"><button id="h-help">看接口目录</button> <button id="h-summary">一屏状态</button>
+      <button id="api-more">更多 ▾</button></div>
+    <div class="moreBox hide" id="api-morebox"><div class="hint"><button id="h-batch">试二级接口 batch</button>
+      <button id="h-grab">抓当前页正文</button></div></div>
+    <div class="hint dim" id="h-out">-</div>
+  </div>
+</section>
+
+<!-- api ▸ 给 AI / 别的软件（1 个板块） -->
+<section class="tab" id="tab-ai" data-coll="api">
+  <div class="card" data-board="api-ai" data-tab="ai" data-order="10">
+    <div class="label">给别的软件 / AI 用（不需要交谈：给端口就行）</div>
+    <div class="hint dim">默认<b>不带隐私</b>：正文提取会剔掉表单控件的值，cookie / localStorage 不在返回里。</div>
+    <div class="hint"><button id="ai-ctx">取当前页正文</button> <button id="ai-doc">看接口示例</button></div>
+    <div class="hint dim" id="ai-out">-</div>
+  </div>
+</section>
+
+<!-- api ▸ 配置空间（1 个板块） -->
+<section class="tab" id="tab-space" data-coll="api">
+  <div class="card" data-board="api-space" data-tab="space" data-order="10">
+    <div class="label">配置空间（隔离：历史 / 书签 / 脚本 / 设置 各一套）</div>
+    <div class="hint"><input id="sp-name" class="mini" placeholder="空间名，如 ai-a">
+      <button id="sp-use">切到这个空间</button> <button id="sp-list">刷新列表</button>
+      <button id="sp-default">回主空间</button></div>
+    <div class="hint dim" id="sp-state">-</div>
+    <div class="hint dim">HTTP 调用也可以带 <code>?space=ai-a</code> 或头 <code>X-CDP-Space: ai-a</code>，那一次请求就走那个空间。</div>
+  </div>
+</section>
+
+<!-- system ▸ 设置（3 个板块） -->
+<section class="tab" id="tab-settings" data-coll="system">
+  <div class="card" data-board="settings-mode" data-tab="settings" data-order="10">
+    <div class="label">浏览模式（电脑 / 手机）</div>
+    <div class="hint">
+      <select id="st-ua">
+        <option value="phone">手机模式（默认）</option>
+        <option value="desktop">电脑模式（桌面 UA）</option>
+        <option value="custom">自定义 UA</option>
+      </select>
+      <button id="st-ua-apply">应用（会刷新当前页）</button>
+    </div>
+    <input id="st-ua-custom" class="wide" placeholder="自定义 UA 字符串（选「自定义」时用）">
+    <div class="hint dim" id="st-ua-now">当前：-</div>
+  </div>
+  <div class="card" data-board="settings-search" data-tab="settings" data-order="20">
+    <div class="label">搜索引擎（地址栏输入非网址时用它）</div>
+    <div class="hint">
+      <select id="st-search">
+        <option value="bing">必应</option>
+        <option value="baidu">百度</option>
+        <option value="google">谷歌</option>
+        <option value="sogou">搜狗</option>
+        <option value="so360">360</option>
+        <option value="custom">自定义</option>
+      </select>
+      <button id="st-search-apply">用这个</button>
+    </div>
+    <input id="st-search-custom" class="wide" placeholder="自定义模板，用 %s 代表关键词，例如 https://www.bing.com/search?q=%s">
+    <div class="hint dim" id="st-search-now">当前：-</div>
+  </div>
+  <div class="card" data-board="settings-proxy" data-tab="settings" data-order="30">
+    <div class="label">代理（HTTP / HTTPS / SOCKS5）</div>
+    <div class="hint">
+      <select id="st-px-type">
+        <option value="none">不用代理</option>
+        <option value="http">HTTP 代理</option>
+        <option value="https">HTTPS 代理（连代理本身走 TLS）</option>
+        <option value="socks5">SOCKS5 代理</option>
+      </select>
+    </div>
+    <div class="hint">
+      <input id="st-px-host" class="wide" placeholder="代理主机，例如 192.168.1.2">
+      <input id="st-px-port" class="mini" placeholder="端口">
+    </div>
+    <div class="hint">
+      <input id="st-px-user" class="mini" placeholder="用户名（可空）">
+      <input id="st-px-pass" class="mini" placeholder="密码（可空）">
+    </div>
+    <input id="st-px-bypass" class="wide" placeholder="直连白名单，逗号分隔，例如 127.0.0.1,*.local,192.168.1.*">
+    <div class="hint"><button id="st-px-apply">保存并应用</button> <button id="st-px-off">关闭代理并直连</button></div>
+    <div class="hint"><label><input type="checkbox" id="st-px-self"> 用自代理（浏览器流量过本地中继：**统计口径更全**，直连不绕外网）</label></div>
+    <div class="hint dim" id="st-px-self-out">-</div>
+    <div class="hint dim" id="st-px-now">当前：-</div>
+    <div class="hint dim">浏览器流量走 App 内的本地中继（127.0.0.1），中继再按上面配置连代理；白名单里的地址直连。只有浏览器的请求走代理，别的 App 不受影响。</div>
+  </div>
+  <pre id="st-out" class="out">-</pre>
+</section>
+
+<!-- system ▸ 省电与后台（1 个板块） -->
+<section class="tab" id="tab-power" data-coll="system">
+  <div class="card" data-board="power-list" data-tab="power" data-order="10">
+    <div class="label">省电（把在后台悄悄烧 CPU / 流量的东西列出来，逐项开关）</div>
+    <div class="hint dim">关掉的项立刻生效；<b>关掉视口尺寸轮询</b>后，触摸注入用的视口值会停在最后一次采样（页面改过缩放就可能点偏）。</div>
+    <div class="hint">排序：<button id="pw-sort-board" class="mini2 on">按板块</button>
+      <button id="pw-sort-hot" class="mini2">按耗电排行（估算）</button>
+      <span class="dim">（估算值不是实测，别当精确数据）</span></div>
+    <div class="listbox" id="pw-list">-</div>
+    <div class="row"><span class="k">后台前台化</span><span class="v" id="ka-state">-</span></div>
+    <div class="hint"><button id="ka-toggle">开 / 关后台前台化</button></div>
+    <div class="hint dim">开着它 = 挂一条常驻通知，熄屏后控制口/代理/定时脚本继续跑（系统要求必须有这条通知）。</div>
+    <div class="hint"><button id="pw-save">一键省电（关轮询 / 嗅探 / 用户脚本，停录制）</button>
+      <button id="pw-restore">全部打开</button> <button id="pw-reload">刷新</button></div>
+    <div class="hint dim" id="pw-state">-</div>
+  </div>
+<div class="card" data-board="bgplay" data-tab="power" data-order="20">
+    <div class="label">后台播放（熄屏 / 切到后台继续放）</div>
+    <div class="row"><span class="k">状态</span><span class="v" id="bg-state">-</span></div>
+    <div class="hint"><button id="bg-toggle">开 / 关后台播放</button></div>
+    <div class="hint dim">开着时：前台服务换成 <b>mediaPlayback</b> 类型（系统才认可"正在放媒体"）、拿到音频焦点、
+      再持一把 partial 唤醒锁；关掉就把焦点和锁都还回去。浏览器页面本身**不会被 pause**，所以切后台音频继续走。</div>
+  </div>
+  </section>
+
+<!-- system ▸ 日志（1 个板块） -->
+<section class="tab" id="tab-log" data-coll="system">
+  <div class="card" data-board="log-tail" data-tab="log" data-order="10">
+    <div class="label">App 日志</div>
+    <div class="hint"><button id="l-reload">刷新</button> <button id="l-events">看页面事件</button></div>
+    <pre id="l-out" class="out">-</pre>
+  </div>
+</section>
+
+<!-- system ▸ 介绍与登记表（3 个板块） -->
+<section class="tab" id="tab-intro" data-coll="system">
+  <div class="card" data-board="intro-about" data-tab="intro" data-order="10">
+    <div class="label">介绍（项目 / 版本）</div>
+    <div class="hint dim" id="in-body">-</div>
+    <div class="hint"><button id="in-boards">功能登记表（自检：归属 / 重名 / 没挂上）</button></div>
+    <div class="listbox" id="in-board-list">-</div>
+  </div>
+  <div class="card" data-board="intro-howto" data-tab="intro" data-order="20">
+    <div class="label">怎么用（三句话）</div>
+    <div class="hint dim">① 想看它怎么点：点 ☰ →「开始监听」，在页面上操作一遍，再点「停止并保存」；<br>
+      ② 不知道怎么选元素：点「🎯 拾取元素」，在页面上点一下，选择器会自动填进「找元素」框；<br>
+      ③ 想让它自己跑：把脚本放到「脚本」栏，或在「接口」栏直接调 HTTP 控制口。</div>
+  </div>
+  <div class="card" data-board="sys-registry" data-tab="intro" data-order="30">
+    <div class="label">功能登记表（每个功能属于哪个集合 / 哪个栏目；自检差集）</div>
+    <div class="hint"><button id="rg-run">跑一次自检</button> <button id="rg-more">更多 ▾</button></div>
+    <div class="moreBox hide" id="rg-morebox"><div class="hint"><button id="rg-json">看原始 JSON</button></div></div>
+    <div class="hint dim" id="rg-state">-</div>
+    <div class="listbox" id="rg-list">-</div>
+  </div>
+</section>
+
+<!-- 功能模块（互相独立，按依赖顺序加载）：
+     fmt → 小工具    kv → 键值对排版    modal → 小窗渲染器    list → 列表行渲染器
+     各栏目自己的小功能留在 app.js，只负责"把数据交给这些渲染器" -->
+<!-- 脚本按依赖顺序加载：fmt → kv → modal → list → app。
+     缓存：页面与脚本一律由本机控制口以 Cache-Control: no-store 提供（见 MainActivity 的 buildUi 与
+     HttpControl 的 /ui/* 路由），所以换构件后不会命中旧副本。 -->
+<script src="registry.js"></script>
+<script src="transport.js"></script>
+<script src="modules/fmt.js"></script>
+<script src="modules/kv.js"></script>
+<script src="modules/modal.js"></script>
+<script src="modules/list.js"></script>
+<script src="modules/chart.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

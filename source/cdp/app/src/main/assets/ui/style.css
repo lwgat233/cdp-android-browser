@@ -1,0 +1,316 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: #0B0F13; color: #E6EDF3; font: 14px/1.5 -apple-system, "Noto Sans CJK SC", sans-serif; }
+body { padding-bottom: 24px; }
+.hide { display: none !important; }
+
+.banner { background: #7A3A00; color: #FFD9A0; padding: 6px 10px; font-size: 12px; }
+
+header { position: sticky; top: 0; z-index: 5; background: #111820; border-bottom: 1px solid #1E2731; }
+.brand { padding: 6px 10px 0; font-weight: 600; letter-spacing: .5px; }
+.brand .ver { color: #7A8794; font-weight: 400; font-size: 12px; margin-left: 6px; }
+#tabs { display: flex; gap: 2px; padding: 6px 6px; overflow-x: auto; }
+/* 同样按"黑白"来：栏目键＝深灰；当前栏目＝浅灰底深字（用明暗表达选中，不用蓝色） */
+#tabs button { flex: 0 0 auto; background: #171717; color: #ABABAB; border: 1px solid #2E2E2E; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+#tabs button.on { background: #E4E4E4; color: #121212; border-color: #FFFFFF; }
+#close { position: absolute; right: 8px; top: 8px; background: #232323; color: #E0E0E0; border: 1px solid #3A3A3A; border-radius: 8px; padding: 4px 10px; }
+
+.tab { display: none; padding: 8px; }
+.tab.on { display: block; }
+
+.card { background: #101821; border: 1px solid #1C2836; border-radius: 10px; padding: 10px; margin: 8px 0; }
+.label { color: #9FB0BF; font-size: 12px; margin-bottom: 6px; }
+.hint { color: #7A8794; font-size: 12px; margin-top: 6px; }
+.dim { color: #6C7A88; }
+.row { display: flex; gap: 8px; padding: 2px 0; font-size: 13px; }
+.row .k { color: #7A8794; flex: 0 0 56px; }
+.row .v { color: #D8E4EF; word-break: break-all; flex: 1; }
+
+.inline { display: flex; gap: 6px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
+input, select, textarea { background: #0B1117; color: #E6EDF3; border: 1px solid #24313E; border-radius: 8px; padding: 8px 10px; font-size: 13px; min-width: 0; }
+input { flex: 1 1 120px; }
+input.n { flex: 0 0 74px; }
+textarea { width: 100%; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.45; }
+/* 用户 2026-09-21 要求：按键就用**简单的黑白色**，不要彩色。
+   分主次不用颜色、用明暗：普通键＝深灰底浅灰字；主键＝浅灰底深灰字；"危险"不靠红色表达，
+   靠文字直说做什么（红色只是情绪，不是信息）。 */
+button { background: #1E1E1E; color: #E4E4E4; border: 1px solid #3A3A3A; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+button.primary { background: #E4E4E4; border-color: #FFFFFF; color: #141414; }
+button.danger { background: #1E1E1E; border-color: #6A6A6A; color: #E4E4E4; }
+button:active { opacity: .75; }
+
+.steps, .list, .log, .out { font-size: 12.5px; }
+.step { border: 1px solid #1C2836; border-radius: 8px; padding: 6px 8px; margin: 6px 0; background: #0E151D; }
+.step .t1 { color: #9FD3FF; }
+.step .t2 { color: #8FA3B5; font-size: 12px; word-break: break-all; }
+.tag { display: inline-block; background: #1B2733; border: 1px solid #2A3A4A; border-radius: 6px; padding: 0 6px; margin-right: 4px; font-size: 11px; color: #A8BCCC; }
+.ok { color: #57D18A; } .bad { color: #FF7A7A; } .warn { color: #FFC46B; }
+.log { max-height: 52vh; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; background: #0A0F14; border: 1px solid #1C2836; border-radius: 8px; padding: 6px; }
+.log div { border-bottom: 1px dashed #16202A; padding: 1px 0; word-break: break-all; }
+.list .item { display: flex; gap: 6px; align-items: center; border-bottom: 1px solid #18222C; padding: 6px 0; }
+.list .item .nm { flex: 1; word-break: break-all; }
+.out { background: #0A0F14; border: 1px solid #1C2836; border-radius: 8px; padding: 6px; font-family: ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-all; max-height: 40vh; overflow: auto; }
+
+input.mini { flex: 0 0 74px; }
+input.wide { flex: 1 1 100%; }
+select { flex: 1 1 auto; }
+
+/* ===== 竖排抽屉式栏目（用户明确要求：不要横向横幅，要「一束一条一条往下排」）===== */
+header { display: flex; align-items: center; gap: 8px; padding: 6px 8px; }
+header .brand { flex: 1 1 auto; }
+#drawerBtn { background: #16202A; color: #EAF6FF; border: 1px solid #223040; border-radius: 8px;
+  padding: 8px 12px; font-size: 16px; min-width: 44px; min-height: 40px; }
+#drawer { position: fixed; left: 0; top: 0; bottom: 0; width: 68%; max-width: 300px;
+  background: #0E141B; border-right: 1px solid #223040; z-index: 40;
+  transform: translateX(-103%); transition: transform .18s ease; overflow-y: auto;
+  box-shadow: 8px 0 24px rgba(0,0,0,.45); padding-top: 54px; }
+body.drawer-open #drawer { transform: translateX(0); }
+.drawerTitle { color: #6F8497; font-size: 12px; padding: 6px 14px 2px; }
+#scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 30; display: none; }
+body.drawer-open #scrim { display: block; }
+/* 抽屉里的栏目：竖排、整行、点得中 */
+#tabs { display: flex; flex-direction: column; gap: 3px; padding: 8px; overflow: visible; }
+#tabs button { flex: 0 0 auto; width: 100%; text-align: left; background: #161616; color: #B4B4B4;
+  border: 1px solid #2C2C2C; border-radius: 9px; padding: 12px 13px; font-size: 14px;
+  min-height: 44px; }
+#tabs button.on { background: #E4E4E4; color: #121212; border-color: #FFFFFF; }
+/* 设置/嗅探/Cookie 栏里的行 */
+.card .hint select, .card .hint button { min-height: 40px; }
+.card input, .card select, .card textarea { background: #0C131A; color: #D7E4EF;
+  border: 1px solid #223040; border-radius: 7px; padding: 9px 10px; font-size: 14px; }
+/* 历史/书签里可点的条目（不是 <a href>，点了走原生通道开在浏览器里） */
+.lnk { color: #6FB6FF; cursor: pointer; }
+
+/* ===== 列表做成"能向下延伸的盒子"（用户要求：下载/历史/书签下面要有栏，能一直往下长）===== */
+.listbox { background: #0B1117; border: 1px solid #1C2836; border-radius: 9px;
+  padding: 6px 8px; margin-top: 6px; max-height: 46vh; overflow-y: auto; min-height: 42px;
+  font-size: 13px; line-height: 1.5; }
+.listbox .row-item { display: flex; align-items: center; gap: 7px; padding: 5px 2px;
+  border-bottom: 1px dashed #18222E; flex-wrap: wrap; }
+.listbox .row-item:last-child { border-bottom: 0; }
+.listbox .t { color: #7E93A6; font-size: 12px; flex: 0 0 auto; }
+.listbox .u { color: #6E8296; font-size: 11.5px; word-break: break-all; flex: 1 1 100%; }
+.listbox .nm2 { color: #CFE0EE; }
+/* 类型标签不是按键，但一起收成灰色（用户要"简单、没颜色"）；信息仍在，只是不抢眼 */
+.listbox .kind { background: #2A2A2A; color: #E8E8E8; border: 1px solid #3E3E3E; border-radius: 5px; padding: 1px 6px; font-size: 11px; }
+.listbox .ckn { color: #FFD79A; font-size: 12.5px; flex: 0 0 auto; }
+.listbox .ckv { color: #9FB3C6; font-size: 11.5px; word-break: break-all; flex: 1 1 auto; max-width: 100%; }
+.listbox .dom { color: #7ED0A8; font-size: 12.5px; padding: 6px 2px 2px; font-weight: 600; }
+.listbox .dim2 { color: #64798C; padding: 6px 2px; }
+.tree { margin-top: 6px; max-height: 26vh; overflow-y: auto; }
+.tree .folderRow { display: flex; align-items: center; gap: 8px; padding: 4px 2px; }
+.tree .folder { color: #FFCF7A; font-size: 13px; }
+button.mini2 { background: #1A1A1A; color: #D6D6D6; border: 1px solid #353535; border-radius: 7px;
+  padding: 5px 9px; font-size: 12px; min-height: 32px; }
+select.fsel { background: #0C131A; color: #B9CAD9; border: 1px solid #223040; border-radius: 6px;
+  padding: 4px 6px; font-size: 12px; max-width: 130px; }
+
+/* 列表行里的小按钮 / 次要字段（下载栏：导出、删记录、删文件） */
+.mini2 { font-size: 12px; padding: 3px 7px; margin-left: 6px; }
+.nm2 { font-weight: 600; }
+
+
+/* ================= 用户反馈（test.md）后的界面规范 ================= */
+/* 单行输入框：占满剩余宽度但绝不溢出；一行放得下就放一行，放不下才换行 */
+.card .hint, .card .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.card .hint input, .card .hint select { flex: 1 1 160px; min-width: 0; max-width: 100%; height: 40px; box-sizing: border-box; }
+.card .hint input.wide { flex: 1 1 100%; }
+.card .hint input.mini, .card .hint select.n { flex: 0 0 84px; }
+.card .hint button { flex: 0 0 auto; }
+/* 只有一个按键时挤在一行（不单独占一行） */
+.card .hint > button:only-of-type { min-width: 88px; }
+/* 任何文字都不许溢出卡片 */
+.card, .card .hint, .listbox, .log, .out, .ta, .row-item, .list .item {
+  overflow-wrap: anywhere; word-break: break-word; max-width: 100%; box-sizing: border-box;
+}
+.listbox { overflow-x: hidden; }
+/* 行内只留一行摘要 + 一个「⋯」，其余操作都在小窗里 */
+/* 反馈 #1/#6：不再用「⋯」；整行可点。行高一致、超出用 … 省略 */
+.row-item { cursor: pointer; height: 34px; min-height: 34px; max-height: 34px; overflow: hidden;
+  white-space: nowrap; flex-wrap: nowrap !important; }
+.row-item > span, .row-item > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-item .u { flex: 1 1 auto; min-width: 0; }
+/* ===== 列表行规范（用户 2026-09-21 定死，唯一权威：docs/界面规范-列表行.md）=====
+   一行 = 左列：第1行**标题**（大字号、600 重，只有它超出才用 … 省略）
+            第2行**网址/次要信息**（小字号、灰）
+        右列：时间 / 流量 / 大小 / 进度 —— **固定在后面、靠右、必须完整显示，绝不截断**
+   （以前是"一行制 34px + 所有字段 ellipsis"，用户报过：数值被吃掉、历史/书签没有大标题小链接） */
+.listbox .row-item.two { height: auto; min-height: 46px; max-height: 64px;
+  flex-wrap: wrap !important;   /* 老规矩是 nowrap !important，会把两行制压回一行 —— 必须反压回去 */
+  align-items: flex-start; row-gap: 1px; padding: 6px 2px; }
+.listbox .row-item.two > .lnk,
+.listbox .row-item.two > .nm2,
+.listbox .row-item.two > .ckn,
+.listbox .row-item.two > .head { order: 1; flex: 1 1 auto; min-width: 0; font-size: 14.5px; font-weight: 600;
+  color: #DCEAF6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.listbox .row-item.two > .kind { order: 1; flex: 0 0 auto; }
+.listbox .row-item.two .head { display: flex; align-items: baseline; gap: 8px; }
+.listbox .row-item.two > .rt,
+.listbox .row-item.two > .when,
+.listbox .row-item.two > .dl-size { order: 2; flex: 0 0 auto; margin-left: auto; padding-left: 8px;
+  font-size: 12px; color: #9FB3C6; white-space: nowrap; overflow: visible; text-overflow: clip; }
+.listbox .row-item.two > .u { order: 3; flex: 1 1 100%; min-width: 0; font-size: 11.5px; color: #6E8296;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.listbox .row-item.two > .dl-bar { order: 4; flex: 1 1 100%; }
+.listbox .row-item.two > button.mini2 { order: 5; flex: 0 0 auto; }
+/* 右列数值原来被 ellipsis 吃掉过：这里明确禁止省略 */
+.listbox .row-item .dl-size, .listbox .row-item .when { text-overflow: clip; }
+.row-item .ckv, .row-item .dom { flex: 1 1 auto; min-width: 0; max-width: 100%; }
+.row-item.sheeted-active { background: #16202A; }
+/* 多窗口浮窗（反馈 #7）：竖向、每行等高、行末 ✕ */
+#win-float { position: fixed; right: 10px; bottom: 96px; width: 232px; z-index: 45;
+  background: #101922; border: 1px solid #26384A; border-radius: 10px; box-shadow: 0 6px 22px #0009; padding: 6px; }
+#win-float .wf-row { display: flex; align-items: center; gap: 6px; height: 30px; min-height: 30px; max-height: 30px;
+  overflow: hidden; white-space: nowrap; border-bottom: 1px dashed #1B2733; }
+#win-float .wf-row:last-child { border-bottom: 0; }
+#win-float .wf-t { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #CFE0EE; font-size: 12.5px; }
+#win-float .wf-x { flex: 0 0 auto; background: #22303C; border: 1px solid #2E4051; color: #CFE0EE; border-radius: 6px; padding: 0 7px; height: 22px; }
+#win-float .wf-on { color: #7FD3A6; }
+#win-float .wf-add { flex: 0 0 auto; width: 22px; height: 22px; background: #2A2A2A; border: 1px solid #454545; color: #F0F0F0; border-radius: 6px; }
+/* 小窗底部操作条 */
+.sheet-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.sheet-actions button { flex: 0 0 auto; }
+
+
+/* ============================================================
+   抽屉改两级（归类集合 ▸ 栏目）+ 「更多 ▾」+ 行尾 ⋯ （本轮改版）
+   注意：#tabs 原来是横排一条（横向滚动），现在里面装的是"集合 + 栏目"两组竖排，
+   所以这里覆写成竖排、不横向滚（用户反复说过的"别搞成一条横幅"）。
+   ============================================================ */
+#tabs { display: block; padding: 0 8px 8px; overflow: visible; }
+#tabs .collHead {
+  display: block; width: 100%; text-align: left; box-sizing: border-box;
+  background: #16202A; color: #B9CBDD; border: 1px solid #223040; border-radius: 8px;
+  padding: 9px 10px; font-size: 13px; font-weight: 600; margin-top: 6px;
+}
+#tabs .collHead.on { background: #2A2A2A; border-color: #4A4A4A; color: #F0F0F0; }
+#tabs .collHead::before { content: "▸ "; color: #7A8794; }
+#tabs .collHead.on::before { content: "▾ "; color: #7EC8FF; }
+#tabs .collTabs { display: none; padding: 2px 0 2px 10px; border-left: 1px dashed #223040; margin-left: 6px; }
+#tabs .collTabs.open { display: block; }
+#tabs .tabBtn {
+  display: block; width: 100%; text-align: left; box-sizing: border-box;
+  background: #101821; color: #9FB0BF; border: 1px solid #1C2836; border-radius: 7px;
+  padding: 7px 9px; font-size: 13px; margin: 4px 0;
+}
+#tabs .tabBtn.on { background: #2A2A2A; color: #F0F0F0; border-color: #4A4A4A; }
+#tabs .tabBtn.hide { display: none; }
+.drawerSearch { padding: 6px 8px 0; }
+.drawerSearch input {
+  width: 100%; box-sizing: border-box; background: #0E1620; color: #CFE0EE;
+  border: 1px solid #24313E; border-radius: 8px; padding: 7px 9px; font-size: 13px;
+}
+.drawerNow { padding: 8px 10px 0; color: #CFE0EE; font-size: 13px; }
+.drawerHint { padding: 2px 10px 10px; font-size: 11px; line-height: 1.5; }
+
+/* 「更多 ▾」收起来的第 4 个及以后的按钮：一行摘要 + 点开才展开 */
+.moreBox { border-left: 2px solid #223040; margin-top: 4px; padding-left: 6px; }
+.moreBox.hide { display: none !important; }
+
+/* 列表行尾的「⋯」：告诉用户点这一行有动作 */
+.row-item .more-cue { color: #4E5D6B; margin-left: auto; padding-left: 6px; font-size: 15px; line-height: 1; }
+/* 行里最多 3 个键，超了要收进小窗（本轮统一） */
+.row-item { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.row-item .t, .row-item .u { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-item .nm2 { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-item button.mini2 { flex: 0 0 auto; font-size: 11px; padding: 3px 6px; }
+
+
+/* ============================================================
+   小窗里的「键值对」排版（用户指定）：
+   键和值**不在一行** —— 键小字在上、值大字在下，每一对之间一条横线分隔。
+   ============================================================ */
+.kv-list { margin: 2px 0 10px; }
+.kv { padding: 9px 2px; border-top: 1px solid #22303E; }
+.kv:first-child { border-top: 0; padding-top: 4px; }
+.kv-k { color: #7A8794; font-size: 11px; line-height: 1.4; margin-bottom: 3px; letter-spacing: .3px; }
+.kv-v { color: #EAF2FA; font-size: 15px; line-height: 1.55; word-break: break-all; white-space: pre-wrap; }
+.sheet-actions { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; margin-top: 8px; border-top: 1px solid #22303E; }
+.sheet-actions button { flex: 0 0 auto; background: #16202A; color: #CFE0EE; border: 1px solid #2A3A4A; border-radius: 8px; padding: 7px 11px; font-size: 13px; }
+.sheet-actions button.danger { border-color: #5A2A2A; color: #FFC9C9; }
+
+/* 列表底部的「＋ 添加步骤」：整行可点、虚线框，比数据行显眼 */
+.row-item.add-row {
+  border: 1px dashed #2F6F9F;
+  border-radius: 8px;
+  margin-top: 6px;
+  background: rgba(35, 72, 107, .18);
+  justify-content: flex-start;
+  gap: 8px;
+}
+.row-item.add-row .t { color: #58A6FF; font-weight: 700; font-size: 18px; }
+/* 两行信息行（历史/书签）：**统一高度、统一宽度**；第一行标题，第二行链接 + 日期。
+   用户的要求："先标题，链接日期放到下一行，太紧凑的话可以两行，要统一高度统一宽度。" */
+.row-item.two { height: 54px; min-height: 54px; max-height: 54px; flex-wrap: wrap; align-content: center; row-gap: 2px; padding: 6px 2px; }
+.row-item.two > .lnk, .row-item.two > .nm2 { flex: 0 0 100%; width: 100%; max-width: 100%; }
+.row-item.two > .u { flex: 0 0 100%; width: 100%; max-width: 100%; font-size: 11.5px; color: #6E8296; }
+.row-item.two > .lnk { color: #CFE0EE; font-weight: 600; }
+.row-item.add-row .nm2 { color: #9FB3C8; }
+
+
+/* 下载行：进度条 + 右侧"大小 / 比例"（用户要求：大小或大小比例放右侧；下载中要看得见进度） */
+.row-item .dl-bar { flex: 1 1 60px; min-width: 40px; height: 8px; border-radius: 5px;
+  background: #1B2733; border: 1px solid #2A3A4A; overflow: hidden; }
+.row-item .dl-bar > i { display: block; height: 100%; background: #DADADA; }   /* 进度条也收成白灰 */
+.row-item .dl-size { flex: 0 0 auto; color: #9FB3C6; font-size: 12px; margin-left: auto; padding-left: 8px; }
+/* ============================================================
+   两行信息行（历史 / 书签 / 阅读记录）用户定的排版：
+   第一行＝标题（大字号，超出用 …）；第二行＝链接（小字号，**右移约一个空格**）；
+   阅读记录的时间占**固定宽度**在最右。历史和书签必须长得一样。
+   ============================================================ */
+.row-item.two > .u { padding-left: 1ch; }
+.row-item.two > .lnk, .row-item.two > .nm2 {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.row-item.two > .when { flex: 0 0 92px; text-align: right; color: #9FB3C6; font-size: 12px; }
+.row-item.two > .head { display: flex; align-items: baseline; gap: 8px; flex: 0 0 100%; width: 100%; min-width: 0; }
+.row-item.two > .head > .nm2 { flex: 1 1 auto; min-width: 0; }
+/* 小窗里的值要能长按选中复制（用户要求：不要"复制"按键，长按文本框就行） */
+.kv-v, .listbox .ckv, .listbox .u, .out, .log { -webkit-user-select: text; user-select: text; }
+/* ============================================================
+   统计图（一个渲染器画两种图：柱状图 + 饼图，纯 SVG、离线，不引第三方库）
+   用户定的形态：柱状图**双色堆叠**（下面前台/下行，上面后台/上行）；
+   每根柱子上标一眼能看的量（时长 + 网站数）。
+   ============================================================ */
+#ch-bar { margin: 10px 0 2px; }
+#ch-pie { margin: 8px 0 2px; }
+.chart { display: block; width: 100%; overflow: visible; }
+.chart-tick, .chart-annot { fill: #6C7A88; font-size: 9.5px; }
+.chart-annot { fill: #9FB3C6; font-size: 9px; }
+.chart-x { fill: #7E93A6; font-size: 10px; }
+.chart-legend { display: flex; gap: 14px; margin: 4px 0 2px; color: #9FB3C6; font-size: 12px; }
+.chart-legend .cl-item { display: flex; align-items: center; gap: 5px; }
+.chart-legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.chart-empty { color: #64798C; font-size: 12px; padding: 10px 2px; }
+.pie-wrap { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.pie-legend { flex: 1 1 168px; min-width: 0; }
+.pie-legend .pl-row { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 0; }
+.pie-legend .pl-name { color: #CFE0EE; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pie-legend .pl-val { color: #9FB3C6; flex: 0 0 auto; font-size: 11.5px; }
+.pie-legend i { width: 10px; height: 10px; border-radius: 2px; flex: 0 0 auto; }
+.pie-center-1 { fill: #7A8794; font-size: 9px; }
+.pie-center-2 { fill: #EAF2FA; font-size: 12px; font-weight: 600; }
+
+
+/* ===== 按键统一灰阶（用户 2026-09-21 反复要求：按键一律黑白、不要彩色）=====
+   放在文件最后，用同一份选择器把前面所有配色压平：普通键＝深灰底浅灰字；
+   主键＝浅灰底深字（分主次靠明暗，不靠颜色）；"危险"键不靠红色表达，靠文字直说做什么。
+   注意：⏸ ▶ 这类字符会被系统渲染成**彩色 emoji**，按键上不要用（用 ‖ ▸ 这种文本字形）。 */
+button, button.mini2, #close, #drawerBtn,
+#tabs button, #tabs .tabBtn, #tabs .collHead, .collHead,
+.sheet-actions button, .sheet-actions button.danger,
+#win-float .wf-x, #win-float .wf-add, #win-float .wf-on,
+#cdp-modal button, .card .hint button {
+  background: #1E1E1E !important;
+  color: #E4E4E4 !important;
+  border-color: #3A3A3A !important;
+}
+button.primary, #cdp-modal button#cdp-modal-ok {
+  background: #E4E4E4 !important;
+  color: #141414 !important;
+  border-color: #FFFFFF !important;
+}
+#tabs button.on, #tabs .tabBtn.on, #tabs .collHead.on, .collHead.on {
+  background: #E4E4E4 !important;
+  color: #111111 !important;
+  border-color: #FFFFFF !important;
+}

@@ -1,0 +1,64 @@
+坐标录制修复 + 界面模块化 · 原始证据
+====================================
+构件：apk/cdp-debug.apk（本轮重建，sha256 见 apk/apk-sha256.txt）
+验收：tools/verify_recmode_finger.py（真手指）**15/15** ｜ verify_rows **25/25** ｜
+      verify_kv_recmode **16/16** ｜ verify_bgplay **15/15** ｜
+      __cdpModules().violations=[]  duplicateIds=[] ｜ __cdpRegistry().problems=[]
+
+一、用户报的「屏幕录制功能的坐标录制没效果」—— 真根因
+----------------------------------------------------
+在 MainActivity 的 ☰ 菜单里：
+    bridge.dispatch("rec.start", JSONObject().put("name", "录制脚本"))   ← 没带 mode
+Bridge 侧 `a.optString("mode", "element")` → **永远退回元素录制**。
+所以"在控制台里选了坐标录制、再用 ☰ 菜单开始监听"录下来的还是元素步 —— 用户看到的"没效果"。
+（控制台里那个「开始监听」按钮是带 mode 的，所以走控制台按钮时是好的；两个入口口径不一致 = 经典双入口漏参。）
+
+修法（三处，缺一不可）：
+1. ☰ 菜单那条按当前方式发：`.put("mode", recModeNow)`，并把菜单文案写成「● 开始监听（坐标录制）」；
+2. Bridge 加 `rec.mode` op + `recordModeNow()` 访问器：**控制台选完方式立刻同步给原生**，
+   否则菜单不知道用户选了什么（这是同一个坑的另一半）；
+3. 验收加"真手指走菜单这条路"的脚本（见下），专门盯这个入口。
+
+二、真手指验收（tools/verify_recmode_finger.py，15/15）
+------------------------------------------------------
+[0] 干净起：重启 App、重新 forward（重启后 pid 变，9222 必须重挂）、打开整屏可点的测试页
+  PASS 测试页就绪（计数 0）
+[1] 控制台里把录制方式选成「坐标录制」（<select> 是系统弹窗，只能 JS 设值，脚本里已注明）
+  PASS 控制台选完方式已同步给原生（mode=coord）
+[2] 真手指点 ☰ → 菜单里那条「● 开始监听（坐标录制）」
+  PASS 菜单里那条写明了方式（坐标录制）→ ● 开始监听（坐标录制）
+  PASS 真点菜单 → 原生 recording=true
+  PASS 原生按坐标录制（mode=coord）
+[3] 真手指点页面（整屏可点区）
+  PASS 真手指点到了蓝块（页面计数 +1）      PASS 这一下是真触摸（isTrusted）
+[4] 真手指点 ☰ →「■ 停止监听并保存」
+  PASS 录到了点击步  → 1
+  PASS 坐标步：mode=coord        PASS 坐标步：没有选择器（不看元素）   PASS 坐标步：有锚点坐标 → [197, 371]
+[5] 回放这条坐标脚本
+  PASS 回放整体 ok    PASS 回放把页面计数从 1 推到 2
+
+三、界面模块化（用户要的"功能与运行代码解耦"）
+---------------------------------------------
+新增 assets/ui/modules/（渲染层，单向依赖 app.js → modules → DOM）：
+  · fmt.js    小工具（mk / time / host / bytes / short / putEmpty）
+  · kv.js     键值对排版（键小字在上 / 值大字在下 / 横线；没写 data-fields 时按行内文字兜底）
+  · modal.js  **小窗渲染器 —— 用户要的接口形态**：Modal.show({title, pairs, buttons})
+              buttons 里每个键带自己的小功能：`{label, op, args}`（模块代发）或 `{label, run: fn}`
+  · list.js   列表行渲染器（行 = 一条信息，点行弹窗；行里的 <button> 被搬进小窗当动作）
+app.js 从 2168 行降到 2009 行，只留"取数据 + 交给渲染器"；老调用点用同名转发，行为不变。
+
+四、顺手挖出并修掉的真缺陷：**撞 id**
+------------------------------------
+`__cdpModules()` 里新加的重复 id 扫描报出 3 个（现已全绿 []）：
+  · `s-out` 出现两次（录制栏目的插入步骤输出框 / 网站安全的输出框）→ `$('s-out')` 永远只拿到第一个，
+    网站安全栏目的输出**根本看不见**；已把安全那个改名 `sec-out` 并改掉对应 JS 引用。
+  · `h-more` / `h-morebox` 各出现两次（历史栏目 / 接口目录）→ `bindMoreBoxes` 里
+    `getElementById(boxId)` 两边拿到同一个盒子：**点接口栏目的「更多 ▾」会展开历史栏目的盒子**。
+    已把接口目录那套改名 `api-more` / `api-morebox`。
+这类坑现在由 `__cdpModules().duplicateIds` 每次验收自动报出来。
+
+五、这一轮新增/更新的验收入口
+------------------------------
+`__cdpModules()` → { modules, count, rows, rowsWithRenderer, modal{renderer,bars,dupes,pairs},
+                   kvFonts, duplicateIds, violations }
+`__cdpModalScan()` / `__cdpRowScan()` / `__cdpRegistry()` 照旧。

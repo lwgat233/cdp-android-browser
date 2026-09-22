@@ -1,0 +1,190 @@
+{
+ "ai.ports": [
+  "verify_security.py"
+ ],
+ "api.catalog": [
+  "verify_security.py"
+ ],
+ "api.cdp": [
+  "verify_api_boards.py"
+ ],
+ "api.endpoints": [
+  "verify_api_boards.py"
+ ],
+ "api.http": [
+  "verify_security.py"
+ ],
+ "apps.grid": [
+  "verify_appgrid.py"
+ ],
+ "apps.ua": [],
+ "block.rules": [
+  "verify_security.py"
+ ],
+ "bookmark.tree": [
+  "verify_rows.py"
+ ],
+ "bundle.export": [],
+ "cookie.list": [
+  "verify_rows.py",
+  "verify_security.py",
+  "verify_cookie_attrs.py"
+ ],
+ "download.list": [
+  "verify_sniff_sites.py"
+ ],
+ "download.mode": [
+  "verify_sniff_sites.py"
+ ],
+ "history.list": [
+  "verify_rows.py"
+ ],
+ "net.list": [
+  "verify_net_bytes.py"
+ ],
+ "net.selfproxy": [
+  "verify_selfproxy_perm.py"
+ ],
+ "net.stats": [
+  "verify_net_bytes.py"
+ ],
+ "net.timeline": [
+  "verify_rows.py"
+ ],
+ "net.tools": [
+  "verify_rows.py"
+ ],
+ "page.clickxy": [
+  "verify_recmode_finger.py",
+  "verify_steps.py"
+ ],
+ "page.query": [
+  "verify_ui_round.py"
+ ],
+ "page.status": [
+  "verify_rows.py"
+ ],
+ "page.video": [
+  "verify_sniff_sites.py"
+ ],
+ "perm.trim": [
+  "verify_selfproxy_perm.py"
+ ],
+ "plugin.read": [
+  "verify_rows.py"
+ ],
+ "plugin.screen": [],
+ "rec.dots": [
+  "verify_dots.py",
+  "verify_steps.py",
+  "verify_modal.py",
+  "verify_replay_progress.py"
+ ],
+ "rec.import": [
+  "verify_rows.py"
+ ],
+ "rec.insert": [
+  "verify_steps.py",
+  "verify_modal.py"
+ ],
+ "rec.list": [
+  "verify_rec_list.py"
+ ],
+ "rec.record": [
+  "verify_coord_capture.py",
+  "verify_recmode_finger.py",
+  "verify_kv_recmode.py",
+  "verify_steps.py",
+  "verify_modal.py",
+  "verify_replay_pick.py",
+  "verify_run_times.py"
+ ],
+ "rec.replay": [
+  "verify_recmode_finger.py",
+  "verify_kv_recmode.py",
+  "verify_dots.py",
+  "verify_replay_pick.py",
+  "verify_run_times.py"
+ ],
+ "rec.run": [
+  "verify_replay_progress.py"
+ ],
+ "scripts.add": [
+  "verify_rows.py"
+ ],
+ "scripts.list": [
+  "verify_rows.py"
+ ],
+ "security.ctl": [
+  "verify_security.py"
+ ],
+ "security.incognito": [
+  "verify_security.py"
+ ],
+ "security.page": [
+  "verify_security.py"
+ ],
+ "set.mode": [
+  "verify_rows.py"
+ ],
+ "set.proxy": [
+  "verify_rows.py"
+ ],
+ "set.search": [
+  "verify_rows.py"
+ ],
+ "sniff.add": [
+  "verify_sniff_sites.py"
+ ],
+ "sniff.list": [
+  "verify_sniff_sites.py",
+  "verify_sniff_pick.py"
+ ],
+ "sniff.note": [],
+ "sniff.pick": [
+  "verify_sniff_pick.py"
+ ],
+ "space.iso": [],
+ "stats.net": [
+  "verify_no_inject.py",
+  "verify_stats.py"
+ ],
+ "stats.read": [
+  "verify_no_inject.py",
+  "verify_stats.py"
+ ],
+ "sys.about": [
+  "verify_rows.py"
+ ],
+ "sys.bgplay": [
+  "verify_bgplay.py"
+ ],
+ "sys.howto": [
+  "verify_rows.py"
+ ],
+ "sys.log": [
+  "verify_rows.py"
+ ],
+ "sys.power": [
+  "verify_bgplay.py"
+ ],
+ "sys.registry": [
+  "verify_rows.py",
+  "verify_rows.py"
+ ],
+ "term.main": [],
+ "tools.headers": [],
+ "tools.translate": [],
+ "vault.main": [
+  "verify_security.py"
+ ],
+ "vault.panel": [
+  "verify_vault_panel.py"
+ ],
+ "win.list": [
+  "verify_win_states.py"
+ ],
+ "win.manage": [
+  "verify_windows.py"
+ ]
+}

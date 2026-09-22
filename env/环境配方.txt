@@ -1,0 +1,58 @@
+CDP 项目 · 环境配方（原样记录，便于照抄复现）
+=====================================================
+
+一、工具链（宿主：飞牛 fnOS，Debian 12，无 root、无免密 sudo；全部在 /vol1/1000/aicache/tools，家目录留符号链接）
+    JDK          /home/lwgat/tools/jdk-17.0.2         （openjdk 17.0.2）
+    Gradle       /home/lwgat/tools/gradle-8.7
+    Android SDK  /home/lwgat/tools/android-sdk        （compileSdk 34 / platform-tools）
+    Gradle 缓存  /home/lwgat/.gradle -> /vol1/1000/aicache/gradle
+    Node         /home/lwgat/.local/bin/node          （v26.8.2，自带 WebSocket，探针零依赖）
+
+    导出（每个新 shell 都要）：
+      export JAVA_HOME=/home/lwgat/tools/jdk-17.0.2
+      export ANDROID_HOME=/home/lwgat/tools/android-sdk
+      export PATH=$JAVA_HOME/bin:/home/lwgat/tools/gradle-8.7/bin:$ANDROID_HOME/platform-tools:$HOME/.local/bin:$PATH
+
+二、构建（实测可用，全程离线用缓存）
+    cd /vol1/1000/airesults/cdp/source/cdp
+    gradle --no-daemon --offline :app:assembleDebug -Pkotlin.compiler.execution.strategy=in-process
+    产物 app/build/outputs/apk/debug/app-debug.apk
+
+    低内存宿主约束（7.8G 总量）：gradle.properties 里 org.gradle.jvmargs=-Xmx1024m、daemon=false，
+    配合 --no-daemon + kotlin in-process，全程只有一个 JVM。
+    **构建与模拟器不要并行**：可用内存 < 2500MB 时先 docker rm -f notifbridge-emu 腾出 ~3GB，构建完再起。
+    **构建成功与否只认 gradle 退出码**（产物文件存在不能当判据：构建失败时旧包还在，
+    会拿上一轮的旧包去测，表现成「改了代码但行为没变」，甚至测的是已经修掉的崩溃版本 —— 本项目真踩过）。
+
+三、模拟器（宿主不在 kvm 组 → 借 docker 组的权限拿 /dev/kvm）
+    镜像：notifbridge-emu:34（android-14，google_apis，x86_64）
+    AVD：test34（/home/lwgat/.android/avd/test34.avd）
+    起停：bash /vol1/1000/aicache/docker/emu.sh start | stop | status
+      （stop 只删容器，镜像/AVD/SDK 全保留；强杀会留下 AVD 锁文件，emu.sh start 会先清掉）
+    冷启动约 30 秒；无头容器内存约 3.0GB（docker stop 可回收）
+
+四、设备端准备
+    adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
+    adb -s emulator-5554 shell am start -n dev.cdp/.MainActivity
+    PID=$(adb -s emulator-5554 shell pidof dev.cdp | tr -d '\r')
+    adb -s emulator-5554 forward tcp:9222 localabstract:webview_devtools_remote_$PID   # 标准 CDP
+    adb -s emulator-5554 forward tcp:8848 tcp:8848                                     # App 自己的控制口
+    说明：控制口随 App 启动自动开（仅 127.0.0.1）；9222 的 forward 每次进程重启都要重加。
+    额外：adb -s emulator-5554 shell svc power stayon true   # 长跑测试期间别让屏幕/CPU 休眠
+
+    显式广播入口（给 adb 测试用）：
+      adb -s emulator-5554 shell am broadcast -n dev.cdp/.CmdReceiver -a dev.cdp.CMD --es cmd <命令> --es text <参数>
+      命令：goto/search/click/query/diag/eval/state/record/steps/replay/scripts/scan/http/events/log
+
+    导入目录（推脚本用）：/sdcard/Android/data/dev.cdp/files/scripts/
+      adb -s emulator-5554 push x.user.js /sdcard/Android/data/dev.cdp/files/scripts/
+
+五、一键验收
+    bash tools/rebuild_and_verify.sh      # 停/起模拟器 + 构建 + 装包 + 跑全部四组
+    bash tools/verify_all.sh              # 只跑四组（已装包的情况下）
+    单组：tools/verify_click.sh / verify_record.sh / verify_scripts.sh / verify_cdp.sh
+    存证：tools/verify_all.sh 会把每组输出写到 ../../evidence/
+
+六、宿主资源实测（本轮）
+    空载可用内存约 5.0GB；跑模拟器时可用 1.5–2.7GB；构建 + 模拟器同时跑会低于 1.5GB（所以串行）
+    App 进程：TOTAL PSS 约 85MB，RSS 约 200MB，线程 47

@@ -1,0 +1,38 @@
+本轮（真站点 + 系统能力 + mydoc/test.md 第二轮反馈）验收证据
+时间：2026-09-19 19:00:32 CST
+
+一、构件
+  apk/cdp-debug.apk  41715628 字节
+  sha256 4d2160961866d9b86d696f7c8d6b213e6f5e03c07374b5e0f0de98857527d1e1
+
+二、分组结果（**同一份包**；每条注明来自哪次跑动，日志在 /tmp）
+  第七组 ①–⑯  ：通过 62 项 / 失败 1 项          ← cdp_g7_paS0.log（干净模拟器单跑 A 段）
+                  唯一失败 = ⑪「iframe 侧录制器这次没报到顶层」（已知偶发，见第五节）
+  第七组 ⑰–㊴ ：通过 99 项 / 失败 0 项          ← cdp_g7_pbL0.log
+  第一～六组   ：10 / 15 / 11 / 8 / 23 / 14 全绿  ← cdp_reg_g1..g6.log
+                  （其中"等待/条件"组本次 23/1，那条"等到 ended"偶发；此前一次单独复跑为 24/0）
+  密码库端到端 ：通过 7 项 / 失败 0 项           ← cdp_vault_final.log
+  复现性       ：105 个 zip 条目名称/CRC/大小全同，REPRO_RC=0 ← /tmp/cdp_repro_final2.log
+
+三、真站点 / 系统能力实测（详见 docs/验证报告.md 第十一节）
+  · B 站直链嗅探：真触摸点播放后抓到完整直链（…bilivideo.com/upgcxcode/…mp4?e=…&upsig=…）
+  · ffmpeg 强制下载（/api/ffmpeg/remux，Referer 全自动）：ok=True rc=0
+      产出 10,516,182 字节  mov,mp4  时长 212.393833  流数 2  Referer=https://m.bilibili.com/
+  · 应用自带下载器（/api/sniff/download）：state=完成  bytes=10,516,124 → files/downloads/bili-w5.mp4
+  · 屏幕录制：files/exports/screen-1789804660129.mp4 = 219,412 字节
+  · 证书：www.bilibili.com → TLSv1.3 / GlobalSign / 含序列号与签名算法
+
+四、对照实验（都是实跑）
+  · 不带 Referer / Referer 用完整页面路径 / Referer 用 CDN 自己的域名 → 403
+  · -user_agent 值带空格不加引号 → 头被解析丢弃 → 403
+  · ffmpeg-kit-min（无 TLS）→ Protocol not found（连无查询串的 https 都打不开）
+
+五、已知抖动（测试设施侧，不是功能缺陷；已写进验证报告）
+  · ⑦组 ⑪：iframe 侧录制器偶尔没报到顶层（同一代码多次跑动里多为绿）
+  · ⑦组 ⑫：播放器页加载真 TS 分片的 m3u8 时 WebView 媒体栈可能卡住；所有接口经 UI 线程派发，
+    于是"控制口空响应、后面几条连带红"。该节里"假电视/SSDP/投屏/播放器打开/下载键"已全部改成轮询等待，
+    改完 ⑫ 段在 A(S0) 里整段为绿（A(N0) 那次还差"下载键"一条，随后补了轮询）；本条仍可能偶发。
+  · 等待组"等到 ended"偶发 1 条（单独复跑 24/0）。
+
+六、诚实记录：有一次跑动（P0）是我自己并行开两个回归互相打断造成的假红
+  （A 8 条 / B 8 条 / 指纹组 8/7），其日志无有效小结，**不进入本证据**；已作废。

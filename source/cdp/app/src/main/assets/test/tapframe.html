@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>点我（三块区域）</title>
+<style>
+  html,body{margin:0;height:100%;background:#101820;color:#e8f0f8;font:15px/1.5 system-ui,sans-serif;overflow:hidden}
+  #topArea{position:fixed;inset:0;background:#1f6feb;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;font-size:24px;color:#fff}
+  #cnt{font-size:64px;color:#7ee787;margin-top:8px}
+  #fr{position:fixed;inset:0;width:100%;height:100%;border:0}
+  #vd{position:fixed;inset:0;width:100%;height:100%;background:#000}
+  .hide{display:none !important}
+</style></head>
+<body>
+  <div id="topArea">
+    <div>页面自己的区域（页内 JS 能看到点击）</div>
+    <div id="cnt">0</div>
+  </div>
+  <!-- 跨域区域：页内脚本收不到这里的 pointerdown（学习通播放器就是这种形态） -->
+  <iframe id="fr" class="hide" src="http://127.0.0.1:8848/api/status"></iframe>
+  <video id="vd" class="hide" controls playsinline src="/test/clip.webm" muted autoplay loop></video>
+  <script>
+    window.__hits = 0;
+    document.addEventListener('pointerdown', function () {
+      window.__hits++;                                  // 页内能收到多少次 pointerdown
+      var c = document.getElementById('cnt');
+      if (c) c.textContent = String(window.__hits);
+    }, true);
+    // ?zone=page|frame|video —— 只显示那一块并铺满全屏，方便"点屏幕中央"就必然点在某块区域上
+    var z = (new URLSearchParams(location.search)).get('zone') || 'page';
+    if (z !== 'page') document.getElementById('topArea').classList.add('hide');
+    if (z === 'frame') document.getElementById('fr').classList.remove('hide');
+    if (z === 'video') document.getElementById('vd').classList.remove('hide');
+  </script>
+</body></html>

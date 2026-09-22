@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">CDP</string>
+  <string name="cdp_dots_desc">在屏幕上显示录制步骤的小点（坐标落点），点一下就能让它自己点那里。不读取界面内容，只画点。</string>
+</resources>

@@ -1,0 +1,60 @@
+# 模拟器自己崩了的那次（全量组合跑第七组后半段）
+
+## 现象
+
+`bash tools/verify_all.sh`（2026-09-18 组合跑）跑到第七组后半段，一串失败：
+
+```
+FAIL 日志里记下了这次拦截
+FAIL 我们自己的页面事件照常送达（口令对）
+FAIL 主页没就位：
+FAIL 主页上的搜索框在（输词回车就走搜索引擎）：实际「0」≠ 期望「1」
+FAIL 主页入口能打开控制台的指定栏目（省电）：实际「」≠ 期望「tab-power」
+FAIL 「介绍」栏目没内容：
+FAIL 日志里写清了是「等用户确认」而不是自动打开
+全量退出码=1
+```
+
+注意这些失败里"实际值"是**空的**（`主页没就位：`、`实际「」`、`实际「0」`）——
+不是"值不对"，而是**一次都没读到**。
+
+## 取证
+
+```
+$ docker ps -a --filter name=emu --format '{{.Names}} {{.Status}}'
+notifbridge-emu Exited (139) 8 minutes ago
+
+$ adb -s emulator-5554 shell pidof dev.cdp
+adb: device 'emulator-5554' not found
+```
+
+`Exited (139)` = 128 + 11（SIGSEGV）：**无头模拟器进程自己崩了**（本机已知问题：
+容器没有资源上限 + swiftshader 软渲染，长跑会崩）。模拟器一没，`adb`/控制口全部拿不到东西，
+所以后面每条断言都读到空。
+
+## 判断与做法
+
+- 这批红不是应用缺陷：**构件没换**、同一份构件单跑第七组是 **69 项全过 / 0 失败**（`evidence/08-浏览器能力.txt`）。
+- 组合跑里第六组之前的部分（第一～六组 82 项）在这一轮**全绿**，之后就崩了。
+- 做法：把"模拟器崩了"这件事**留档**（本文件），并把第七组的独立跑结果作为该组依据；
+  不把红灯写成"偶发"、也不拿"构件对得上"当挡箭牌——两份原始输出都在 evidence 里，读者可自己判。
+
+## 第二次（清单第四批的全量组合跑，2026-09-18 更晚一次）
+
+现象：组合跑第七组 ㉖「配置隔离」那一段，断言的"实际值"又是空的（`实际「?」`、`→ ` 空），
+之前几段都正常。
+
+取证：
+
+```
+$ docker ps -a --filter name=emu --format '{{.Names}} {{.Status}}'
+notifbridge-emu Exited (139) 2 minutes ago
+
+$ adb devices
+List of devices attached            ← 空的
+$ adb -s emulator-5554 shell pidof dev.cdp
+adb: device 'emulator-5554' not found
+```
+
+同一份构件单跑第七组：**100 项全过 / 0 失败**（`evidence/08-浏览器能力.txt`）。
+结论同上：无头模拟器容器 SIGSEGV，不是应用缺陷。

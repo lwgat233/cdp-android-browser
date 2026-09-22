@@ -1,0 +1,1212 @@
+===================== 第一组 点击链路 =====================
+
+[1m0. 前置：HTTP 控制口 + 测试页[0m
+  控制口: {'running': True, 'port': 8848, 'bind': '127.0.0.1', 'url': 'http://127.0.0.1:8848/api/status', 'requests': 906}
+  [32mPASS[0m 控制口在跑
+  清掉旧脚本：{"ok":true,"removed":11}
+  页面: {"t":"CDP 自动化测试页","vw":393,"vh":732,"dpr":2.75,"scrollY":0}
+  计数: {"easy":0,"div":0,"covered":0,"cover":0,"deep":0,"link":0,"afterVideo":0}
+
+[1m1. 对照组：普通 <button> —— 真实触摸注入 + 坐标精度[0m
+  App 结果: {"locate":{"ok":true,"strategy":"id","score":100,"tried":["id"],"el":{"tag":"button","id":"easyBtn","cls":"","text":"普通按钮","selector":"#easyBtn","box":{"x":23,"y":131,"w":85,"h":42,"cx":65,"cy":152},"visible":true},"inViewport":true,"partiallyVisible":true,"anchorUsed":null,"diag":{"tag":"button","isAnchor":fal
+  [32mPASS[0m 点着了（via=native-touch）
+  [32mPASS[0m isTrusted=true（真实触摸事件，不是 JS 合成）
+  [32mPASS[0m 页面侧计数 easy=1
+  页面自记几何: {"name":"doc","type":"pointerdown","trusted":true,"clientX":65,"clientY":152,"elLeft":23,"elTop":131,"elW":85,"elH":42,"localX":42,"localY":21,"inside":true,"vw":393,"vh":732}
+    -> 相对元素左上角 (42,21)，元素 85x42，偏差 (0.5,0.0)，inside=True
+  [32mPASS[0m 命中点落在元素内部且基本居中（±4px）
+
+[1m2. 关键场景：不是 <a>、只认 pointerup 的 div 按键[0m
+  先证明「JS 直接 click() 打不动它」——这正是这类按键的痛点
+  [32mPASS[0m 对照组成立：el.click() 之后计数仍是 0（所以必须靠真实事件注入）
+  App 结果: {"locate":{"ok":true,"strategy":"id","score":100,"tried":["id"],"el":{"tag":"div","id":"divBtn","cls":"","text":"下一章（div，只认 pointerup）","selector":"#divBtn","box":{"x":23,"y":257,"w":248,"h":53,"cx":147,"cy":283},"visible":true},"inViewport":true,"partiallyVisible":true,"anchorUsed":null,"diag":{"tag":"
+  [32mPASS[0m 点着了（via=native-touch，isTrusted=True）
+  [32mPASS[0m 页面侧计数 div=1（真的触发了它的 pointerup 处理器）
+
+[1m3. 被浮层盖住的按钮：诊断要说清原因，不能假装成功[0m
+  App 结果: {"locate":{"ok":true,"strategy":"id","score":100,"tried":["id"],"el":{"tag":"button","id":"coveredBtn","cls":"","text":"被盖住的按钮","selector":"#coveredBtn","box":{"x":23,"y":392,"w":348,"h":64,"cx":197,"cy":424},"visible":true},"inViewport":true,"partiallyVisible":true,"anchorUsed":null,"diag":{"tag":"button",
+  诊断: {"ok":true,"el":{"tag":"button","id":"coveredBtn","cls":"","text":"被盖住的按钮","selector":"#coveredBtn","box":{"x":23,"y":392,"w":348,"h":64,"cx":197,"cy":424},"visible":true},"diag":{"tag":"button","isAnchor":false,"hasOnclickAttr":false,"onclickProp":false,"role":"","tabindex":"","pointerEvents":"auto","cursor":"default","type":"","href":"","hitSelf":false,"coveredBy":"div#cover","hitAnc
+    -> hitSelf=False coveredBy=div#cover clickableAncestor=button#coveredBtn
+  [32mPASS[0m 诊断指出中心点被具体元素盖住
+  页面侧：浮层被命中 1 次，被盖按钮被命中 0 次
+  [32mPASS[0m 与真实手指一致：触摸落在浮层上，被盖按钮没被误触
+
+[1m小结：通过 10 项 / 失败 0 项[0m
+---- 第一组 点击链路 退出码 0 ----
+===================== 第二组 录制与回放 =====================
+
+[1m1. 回到测试页，确认计数干净[0m
+  计数: {"easy":0,"div":0,"covered":0,"cover":0,"deep":0,"link":0,"afterVideo":0}
+
+[1m2. 开始录制，然后用「真实手势」点一下那个 div 按键（等价于用户手点）[0m
+  [32mPASS[0m 录制已开始
+  目标几何(css): {"x":147,"y":283,"w":248,"h":53}
+  [32mPASS[0m 真实手势点中了（页面侧计数=1）
+
+[1m3. 停止录制，检查记下来的内容[0m
+  [32mPASS[0m 录到 1 步，脚本 id=s1789715973300
+    -> 类型=click 目标=div#divBtn「下一章（div，只认 point」
+    -> 位置：距底 449 px / 距顶 283 px（视口 393x732，纵向比例 0.387，主锚=top）
+    -> 指纹：#divBtn
+    -> 诊断：isAnchor=False 有onclick=False cursor=auto 中心命中自身=True 可点祖先=None
+  [32mPASS[0m 记下来的这一步：位置锚点 + DOM 指纹 + 诊断都齐
+
+[1m4. 回放（指纹完好）：应走真实触摸[0m
+    -> 定位策略=id 命中=True 注入点={"x": 103, "y": 283}
+    -> 点击计数 1 → 2，via=native-touch，isTrusted=True，耗时 743 ms
+  [32mPASS[0m 指纹完好时：真实触摸点中，且页面点击数确实增加
+  [32mPASS[0m 页面侧计数 1 → 2
+
+[1m5. 关键：把 DOM 指纹破坏掉，只留位置 —— 还能不能点中[0m
+  [32mPASS[0m 指纹已破坏（id 与文字都换了，原先记录的 #divBtn 选择器失效）
+  破坏后目标几何: {"x":23,"y":257,"w":146,"h":53}
+    -> 定位策略=anchor-point 命中=True（试过的策略：['id', 'path', 'attrs', 'text', 'anchor']）
+    -> 注入点={"x": 96, "y": 283} via=native-touch isTrusted=True 计数 2→3
+  [32mPASS[0m 指纹没了，靠位置锚点仍然点中
+  [32mPASS[0m 页面侧计数 2 → 3（位置锚点这一路真的点着了）
+
+[1m5b. 目标搬走之后：必须如实报失败，不能点到别的东西上[0m
+  [32mPASS[0m 已把目标搬到 y>1500 处（远离录制时位置）
+    -> 步骤 ok=False 定位=False 原因=锚点位置上最像的是 body（相似度 -4.9651151179763655 分，只对得上 太大），不够像，不猜着点
+  [32mPASS[0m 目标搬到屏幕外别处：回放报失败（不静默点到别处）
+  [32mPASS[0m 页面侧计数没变（3：确实没误点到别的元素上）
+
+[1m6. 列表底部的按键：要先滚进视野才够得着[0m
+  App 结果: {"locate":{"ok":true,"strategy":"text+tag","score":100,"tried":["attrs","text"],"el":{"tag":"div","id":"deepBtn","cls":"","text":"列表底部的「下一章」","selector":"#deepBtn","box":{"x":23,"y":2920,"w":188,"h":53,"cx":117,"cy":2946},"visible":true},"inViewport":false,"partiallyVisible":false,"anchorUsed":null,"diag":{"tag":"div","isAnchor":false,"hasOnclickAttr":false,"onclickProp":false,"role":"","tabindex"
+  [32mPASS[0m 点中了列表底部的按键（页面计数=1）
+  [32mPASS[0m 走的是真实触摸注入（via=native-touch）
+  [32mPASS[0m 确实先滚动了页面（scrollY=2580）
+
+[1m小结：通过 15 项 / 失败 0 项[0m
+---- 第二组 录制与回放 退出码 0 ----
+===================== 第三组 用户脚本与接口 =====================
+
+[1m0. 前置[0m
+  先清掉这一轮的脚本（干净起点）：{"ok":true,"removed":1}
+
+[1m1. 用户脚本：命中站点的会执行，不命中的不执行[0m
+  保存命中脚本: {"ok":true,"id":"s1789715984141"}
+  [32mPASS[0m 脚本已保存（id=s1789715984141）
+  [32mPASS[0m 不命中的脚本也存进去了（id=s1789715984263）
+  重载后页面状态: {"hit":1,"miss":0,"title":"脚本已生效"}
+  [32mPASS[0m 命中 @match 的脚本执行了（__US_HIT=1）
+  [32mPASS[0m 不命中 @match 的脚本没执行（__US_MISS=0）
+  [32mPASS[0m 脚本改掉的标题生效（document.title=脚本已生效）
+
+[1m2. 从导入目录扫描（adb push 的脚本能被认出来并注入）[0m
+/tmp/cdp_pushed.user.js: 1 file pushed, 0 skipped. 0.3 MB/s (196 bytes in 0.001s)
+  扫描结果: {"ok":true,"added":[{"name":"验收-推入的脚本","kind":"userscript"}],"dir":"\/storage\/emulated\/0\/Android\/data\/dev.cdp\/files\/scripts"}
+  [32mPASS[0m 扫描认出了推入的 .user.js
+  [32mPASS[0m 推入的脚本在页面上真的执行了（__US_PUSHED=1）
+
+[1m3. 搜索：输入词 → 搜索引擎地址，导航真的发生[0m
+  结果: {"ok":true,"q":"CDP 测试","url":"https:\/\/cn.bing.com\/search?q=CDP+%E6%B5%8B%E8%AF%95"}
+  [32mPASS[0m 拼出了搜索引擎地址：https://cn.bing.com/search?q=CDP+%E6%B5%8B%E8%AF%95
+  当前页面: https://cn.bing.com/search?q=CDP+%E6%B5%8B%E8%AF%95
+
+[1m4. 找元素：按文字查（不依赖选择器）[0m
+    -> 候选 3 个，前几个：[('div', 'deepBtn'), ('div', 'divBtn'), ('div', '② 不是 <a>、也')]
+  [32mPASS[0m 按文字能查到候选，且包含那个 div 按键
+
+[1m5. 外部控制口：绑定范围 + 局域网开关[0m
+  局域网绑定: 0.0.0.0:8848
+  [32mPASS[0m 开启局域网绑定后监听 0.0.0.0:8848
+  [32mPASS[0m 默认只绑本机 127.0.0.1（安全默认）
+  请求计数: 977
+
+[1m6. 页面内点击计数（App 与页面两侧各有一份口径）[0m
+  复核: {"easy":0,"div":0,"covered":0,"cover":0,"deep":0,"link":0,"afterVideo":0}
+
+[1m小结：通过 11 项 / 失败 0 项[0m
+---- 第三组 用户脚本与接口 退出码 0 ----
+===================== 第四组 外部CDP与资源 =====================
+
+[1m1. 外部 CDP：能看到哪些页面 target[0m
+  [page] 活  CDP 控制台
+      https://appassets.androidplatform.net/ui/index.html
+      ws://127.0.0.1:9222/devtools/page/0C829F9779CB57B30BCEA1BF8F705FD0
+  [page] 活  脚本已生效
+      https://appassets.androidplatform.net/test/harness.html
+      ws://127.0.0.1:9222/devtools/page/6301DF18DD3EBC624295CC1FFD69D19D
+  [32mPASS[0m 能看到浏览器页面 target
+  [32mPASS[0m 能看到控制台页面 target
+
+[1m2. 外部 CDP：读当前页面（不依赖 App 接口）[0m
+  CDP 读到标题：CDP 自动化测试页
+  [32mPASS[0m 外部 CDP 能读到页面标题
+
+[1m3. 外部 CDP：自己发起的导航真的生效[0m
+  [32mPASS[0m CDP 发起的导航生效（现在标题：新标签页）
+  [32mPASS[0m App 侧也看到同一页面（两边观察一致）
+
+[1m4. 两条通道读同一个值，必须一致[0m
+  App 接口：CDP 自动化测试页　｜　外部 CDP：CDP 自动化测试页
+  [32mPASS[0m 两个独立通道读数一致（CDP 自动化测试页）
+
+[1m5. 外部 CDP：注入一次鼠标点击[0m
+  目标 #easyBtn 中心(css)：65,152　当前计数：0
+  mouse seq sent
+  [32mPASS[0m 外部注入的鼠标点击真的触发了页面处理器（easy=1）
+
+[1m6. 资源占用[0m
+  pid=2934　内存： TOTAL 103099 58848 13512 335 233624 41987 30210 7734
+  VmRSS:	  231780 kB
+  Threads:	50
+  宿主：总 7851MB 可用 2235MB　模拟器容器：Up About an hour
+
+[1m7. 稳定性[0m
+  [32mPASS[0m 本轮 logcat 没有 FATAL / ANR
+  页面侧报错（最后几条）：[07:11:17.152] 页面错误: Access to XMLHttpRequest at 'https://cdp-event.local/ev?d=%7B%22t%22%3A%22log%22%2C%22msg%22%3A%22%E4%BC%AA%E9%80%A0%22%7D' from origin 'https://appassets.androidplatform.net' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @:7
+
+[1m小结：通过 8 项 / 失败 0 项[0m
+---- 第四组 外部CDP与资源 退出码 0 ----
+===================== 第五组 等待条件与导航 =====================
+
+[1m0. 前置：页面得有一个真的 <video>，而且还没播过[0m
+  视频初始状态: {"videos":1,"plays":0,"ended":false,"dur":3,"next":0,"nextTrusted":false,"shown":"none"}
+    -> 视频数 1，时长 3s，已播 0 次
+  [32mPASS[0m 测试页上有 1 个真实 <video>（clip.webm）
+
+[1m1. 监听（录制）里插入「播放视频 → 等它播完 → 如果出现『下一个』就点它」[0m
+  [32mPASS[0m 开始监听
+  [32mPASS[0m 插入步骤1：播放视频（当前 1 步）
+  [32mPASS[0m 插入步骤2：等视频播完（当前 2 步）
+  [32mPASS[0m 插入步骤3：如果『下一个』出现就点它（当前 3 步）
+  停止并保存：{"ok":true,"id":"s1789716182666","steps":3,"inFrame":0}
+  [32mPASS[0m 停止并保存：3 步，拿到脚本 id
+
+[1m2. 回放：必须真的等到视频播完，再点下一个[0m
+    -> 总耗时 4274ms，整体 ok=True
+    -> 步骤1 播放视频 ok=True 注入坐标={"x": 183, "y": 366}
+    -> 步骤2 等待 videoEnded：等了 1824ms，轮询 7 次，ok=True
+    -> 步骤3 条件 elementExists=True → 走 then 分支，子步骤 1 个
+  [32mPASS[0m 三步依次生效，且等待步骤真的等到了 ended
+  页面侧视频状态: {"videos":1,"plays":1,"ended":true,"dur":3,"next":1,"nextTrusted":true,"shown":"inline-block"}
+    -> plays=1 ended=True dur=3
+  [32mPASS[0m 视频真的被播放了 1 次（不是假状态）
+  [32mPASS[0m ended 事件真的触发了（播放到结尾）
+    -> next=1 nextTrusted=True shown=inline-block
+  [32mPASS[0m 「下一个」被点中 1 次
+  [32mPASS[0m 点它用的是真实触摸（isTrusted=true）
+
+[1m3. 计数：再跑一次，累计次数与每步触发次数都要涨[0m
+    -> stats: 跑了 2 次，成功 2 次，上次耗时 4244ms，每步触发 [2, 2, 2]
+  [32mPASS[0m 运行计数正确累加（跑了 2 次、每步各触发 2 次）
+  [32mPASS[0m 页面侧计数也到 2（两轮各点中一次）
+
+[1m4. 条件为假时必须走 else，不能碰 then 里的东西[0m
+  建脚本结果 id=s1789716191883
+  [32mPASS[0m 已建一条「条件为假」的脚本（POST 请求体里带中文也不卡）
+    -> 条件 elementExists=False → 分支 else，子步骤 1
+  [32mPASS[0m 条件不成立 → 走 else，且 then 里的点击没被执行
+    -> H.counts.easy = 0
+  [32mPASS[0m then 里的点击确实没执行（easy 计数保持 0）
+
+[1m5. 历史与书签[0m
+    -> 历史条数 23，最新一条：CDP 自动化测试页 https://appassets.androidplatform.net/test/harness.html
+  [32mPASS[0m 导航被记进历史
+    -> {"ok": true, "added": true, "bookmark": {"id": "b1789716192681", "url": "https://appassets.androidplatform.net/test/harness.html", "title": "CDP 自动化测试页", "folder": "", "ts": 1789716192681}}
+  [32mPASS[0m 收藏当前页成功
+    -> 书签 2 条：['https://example.com/one-shot-1789715590', 'https://appassets.androidplatform.net/test/harness.html']
+  [32mPASS[0m 书签列表里有它
+    -> 当前 URL：https://appassets.androidplatform.net/test/harness.html
+  [32mPASS[0m 从书签/历史点开能真的导航过去
+    -> added=False removed={"id": "b1789716192681", "url": "https://appassets.androidplatform.net/test/harness.html", "title": "CDP 自动化测试页", "folde
+  [32mPASS[0m 再点一次取消收藏
+
+[1m6. 界面通道：✕ 真的能关控制台、下拉菜单能切到对应栏目[0m
+  [32mPASS[0m ✕ 走的是原生通道（日志里有『控制台已关闭（✕ 生效）』）
+    -> 日志尾部：['本就绪: https://appassets.androidplatform.net/test/harness.html', '[07:23:18.008] 控制台已关闭（✕ 生效）']
+  [32mPASS[0m 关闭动作真的落到了 App 日志里
+  控制台当前页签: {"on":"历史","hisTab":"tab on"}
+  [32mPASS[0m 从下拉菜单可直接落到「历史」栏目
+
+[1m小结：通过 24 项 / 失败 0 项[0m
+---- 第五组 等待条件与导航 退出码 0 ----
+===================== 第六组 界面按键可用性 =====================
+
+[1m1. 地址栏：点一下要能聚焦、全选、打字替换、回车导航[0m
+  ⟳ 当前位置: 313 199
+  地址栏中心: 600 199
+    -> focused=True
+  [32mPASS[0m 点一下真的拿到焦点（以前 focused=false、键盘都不弹）
+    -> 地址栏现在是: ab
+  [32mPASS[0m 全选生效：打字把旧 URL 整条替换掉（不是插到中间）
+    -> 回车后 URL: https://cn.bing.com/search?q=ab
+  [32mPASS[0m 回车真的触发了导航（按输入内容去搜）
+
+[1m2. ☰ 下拉菜单：弹在 ☰ 下面，而且点得动[0m
+  ☰ 当前位置: 1008 199
+    -> 菜单项 9 个：['⏺ 开始监听（录制）', '&#127899; 打开控制台', '&#127919; 拾取元素（不用看源码）', '&#128263; 静音此页（开/关）', '&#128228; 分享本页', '★ 书签', '&#128344; 历史', '&#128220; 脚本', '&#128268; 接口 / 状态']
+    -> 第一项 bounds 高度 65 px，中心 x=761
+  [32mPASS[0m 菜单弹在 ☰ 下方的右侧（以前是左下角一条 33px 细条）
+    -> {"ok": true, "recording": true, "name": "录制脚本", "steps": 0, "elapsedMs": 609}
+  [32mPASS[0m 菜单项真的点得动（第一项=开始监听 → 真的开始录了）
+
+[1m3. 控制台开着时，上面那排键仍然能用（浮层不再盖住工具栏）[0m
+  控制台开着时 ⟳ 位置: 313 199
+    -> 刷新标记现在是: undefined
+  [32mPASS[0m 控制台开着时 ⟳ 仍然刷新（以前被浮层挡住，点它等于点浮层）
+    -> 菜单项 9 个
+  [32mPASS[0m 控制台开着时 ☰ 也能弹菜单，且不会顺手把控制台关掉
+
+[1m4. 下载功能：App 自己下（不交给系统下载器），下下来的字节要能对上[0m
+  源文件 sha256=7c75fb82ba17b4c4…（4096 字节）
+  [32mPASS[0m 前置：源文件已放进 App 下载目录
+    -> 下载记录: [{"name": "dst-probe.bin", "url": "http://127.0.0.1:8848/api/downloads/get?name=src-probe.bin", "bytes": 4096, "total": 4096, "state": "完成", "ts": 1789716272612, "incognito": false, "path": "/data/use
+  [32mPASS[0m 应用内下载完成：记录里有 dst-probe.bin、4096 字节、状态完成
+  [32mPASS[0m 取回的文件与原文件逐字节一致（sha256 7c75fb82ba17b4c4…）
+
+[1m5. 网页里的下载链接（长按菜单「下载链接」同一条路）也要能下[0m
+  点下载链接：css=(111,222) → 屏幕 (305,872)
+    -> tp://127.0.0.1:8848/api/downloads/get?name=src-probe.bin（application/octet-stream，声明大小 4096 字节）→ src-probe.bin
+    -> [07:24:45.457] 下载完成：src-probe.bin（4096 字节 / 预期 4096）→ /data/user/0/dev.cdp/files/downloads/src-probe.bin
+  [32mPASS[0m 点网页里的下载链接 → 走同一个应用内下载（日志有『下载请求』与『下载完成』）
+    -> [{"name": "src-probe.bin", "url": "http://127.0.0.1:8848/api/downloads/get?name=src-probe.bin", "bytes": 4096, "total": 4096, "state": "完成", "ts": 1789716285409, "incognito": false, "path": "/data/use
+  [32mPASS[0m 下载记录里出现网页那一次（src-probe.bin，4096 字节）
+  [32mPASS[0m 重名下载后源文件仍然完整（下到临时文件再改名，不会先把自己截断）
+    -> 系统下载服务里 dev.cdp 的条目数: 0（期望 0）
+  [32mPASS[0m 全程没走系统下载器（系统下载服务里没有本 App 的条目）
+
+[1m小结：通过 14 项 / 失败 0 项[0m
+---- 第六组 界面按键可用性 退出码 0 ----
+===================== 第七组 浏览器能力 =====================
+
+[1m第七组 ① 设置接口与默认值[0m
+  [32mPASS[0m 设置接口可读：默认 手机模式 / 必应 / 不隐身 / 不代理
+
+[1m第七组 ② 浏览模式：电脑模式/手机模式真的作用到页面 UA[0m
+  [32mPASS[0m 电脑模式生效：页面 UA = Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36…
+  [32mPASS[0m 手机模式生效：页面 UA = Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE…
+
+[1m第七组 ③ 搜索引擎可切换（真的改变地址栏搜索的落点）[0m
+  [32mPASS[0m 换成百度后，搜索 URL 落到 baidu
+  [32mPASS[0m 自定义模板生效（%s 被替换成关键词）
+
+[1m第七组 ④ 隐身模式：不记历史 + 关掉时清 cookie[0m
+  [32mPASS[0m 隐身模式已开启（设置里可见）
+  [32mPASS[0m 隐身期间导航没进历史（1 → 1）
+  [32mPASS[0m 隐身模式已关闭
+
+[1m第七组 ⑤ Cookie 查看与管理（按域名 / 全局 / 删单条 / 清空）[0m
+  [32mPASS[0m 按域名查得到页面写下的 cookie（cdp_test=1）
+  [32mPASS[0m 全局 Cookie 列表里能看到这个站点
+  [32mPASS[0m 删单条生效（cdp_test 已消失）
+  [32mPASS[0m 清空全部 Cookie 后列表为空
+
+[1m第七组 ⑥ 资源嗅探：页面里的 m3u8 被抓出来[0m
+  [32mPASS[0m 嗅探清单里出现 index.m3u8（kind=m3u8）
+
+[1m第七组 ⑦ m3u8 下载：播放列表 + 分片按顺序落盘（不合并）[0m
+  [32mPASS[0m 下载记录里 t1 已完成且是 3 个分片
+  [32mPASS[0m 分片真的落盘：0001.ts 0002.ts 0003.ts MANIFEST.txt playlist.m3u8 
+  [32mPASS[0m 分片内容对（0002.ts = 2048 字节）
+  [32mPASS[0m 多码率主列表也能下（自动取到变体，共 3 片）
+
+[1m第七组 ⑧ 代理：HTTP / SOCKS5 / 账号密码 / 关掉直连[0m
+  [32mPASS[0m 本地中继起来了（127.0.0.1:36983）
+  [32mPASS[0m 走 SOCKS5 上游能正常打开页面（浏览器 → 中继 → SOCKS5 上游 → 目标）
+  [32mPASS[0m 上游代理确实收到并完成了 SOCKS5 连接（目标就是 10.0.2.2:8848）
+  [32mPASS[0m 走 HTTP 上游能正常打开页面
+  [32mPASS[0m 上游代理确实收到并完成了 HTTP CONNECT（目标 10.0.2.2:8848）
+  [32mPASS[0m 密码错时上游拒绝（407 计数增加，认证确实被带上去了）
+  [32mPASS[0m 密码对时能正常打开页面（代理账号密码生效）
+  [32mPASS[0m 认证成功后上游记到成功连接
+  [32mPASS[0m 关掉代理后本地中继停了（端口 0）
+  [32mPASS[0m 直连恢复，页面正常
+
+[1m第七组 ⑨ 界面：竖排抽屉栏 + 每个按键都真的能触发[0m
+  [32mPASS[0m 栏目是竖排（flexDirection=column）
+  [32mPASS[0m 抽屉里 16 个栏目（含新增 设置/资源嗅探/Cookie）
+  [32mPASS[0m 点 ☰ 抽屉真的打开
+  [32mPASS[0m 点遮罩抽屉关上
+  [32mPASS[0m 切到「设置」栏目：内容区与高亮一致（设置（模式 / 搜索 / 代理））
+  [32mPASS[0m 「资源嗅探」「Cookie」栏目都能切过去
+  [32mPASS[0m 死键扫描：200 个控件，0 个点不动的死键
+  [32mPASS[0m 点「刷新」有反应：共 2 条；下载目录 /data/user/0/dev.cdp/files/downloads
+  [32mPASS[0m 嗅探清单在界面里显示出来了
+  [32mPASS[0m 点「开/关隐身模式」有反应
+  [32mPASS[0m 点「列出全局 Cookie」有反应（（没有查到 cookie））
+  [32mPASS[0m 点历史条目真的开在浏览器里（http://10.0.2.2:8848/api/_test/hls/page.html?px=direct）
+
+[1m第七组 ⑩ 外部协议（bilibili:// 这类）不该把页面带到「Webpage not available」[0m
+  外部协议用例的基址: http://127.0.0.1:8848/api/_test/hls/link.html
+  [32mPASS[0m 外部协议被拦下，页面留在原地（http://127.0.0.1:8848/api/_test/hls/link.html）
+  [32mPASS[0m 日志里明确记下了这次拦截
+  [32mPASS[0m 普通 http 链接照常跳转（拦截没有误伤）
+
+[1m第七组 ⑪ 录制：iframe 里的点击（播放器常在这种 frame 里）必须能录到[0m
+  点进 iframe 内层按钮的坐标(css): 0 0
+  dump 里没看到我们的窗口（第 1 次）：清掉抢焦点的 ANR 窗口 + 把 App 拉回前台
+  dump 里没看到我们的窗口（第 2 次）：清掉抢焦点的 ANR 窗口 + 把 App 拉回前台
+  dump 里没看到我们的窗口（第 3 次）：清掉抢焦点的 ANR 窗口 + 把 App 拉回前台
+  [31mFAIL[0m 取不到 WebView 位置
+  iframe 内部计数: （不为 0 说明真手指确实点进了 iframe）
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 停止时记录了「来自 iframe」的步骤（不是 0 步）
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  脚本列表 id: 
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 日志里明确标出这步是 iframe 来的
+
+[1m第七组 ⑫ 内置播放器（下载键）+ 投屏（DLNA：搜索 → 下发 → 播放）[0m
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 假电视（DLNA 渲染器）已在本机起来
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m SSDP 搜到了它，并解析出 AVTransport 的 controlURL
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 电视收到了 SetAVTransportURI + Play，且地址就是那个视频
+  [31mFAIL[0m 内置播放器没打开：
+  [31mFAIL[0m 播放器按键不全：
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 点播放器里的「下载 m3u8」真的开始下载了
+
+[1m第七组 ⑬ 元素拾取器：点哪抓哪，选择器自动填进控制台（不用看源码）[0m
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 拾取器抓到了元素（选择器 + 文字 + 诊断）
+  [31mFAIL[0m 拾取后没填回控制台：
+
+[1m第七组 ⑭ 页内查询：高亮命中、上一个/下一个、清除高亮[0m
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 查询命中并高亮（页面里出现 <mark data-cdp-hit>）
+  [31mFAIL[0m 页面里真的插了高亮标签（数量与命中一致）：实际「0」≠ 期望「」
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 这一页只命中 1 处：前进/后退都该停在 1（按 count 分支，不假红）
+  [31mFAIL[0m 清除高亮后页面还原（不留痕迹）：实际「?」≠ 期望「0」
+
+[1m第七组 ⑮ 省电面板：逐项开关真的改变行为（不是只改个显示）[0m
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 省电面板能读到各项状态
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 关掉嗅探后不再登记媒体请求（这一条是「真关」而不是只改显示）：实际「?」≠ 期望「0」
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 打开嗅探后又登记得上了（对照组成立）
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 一键省电：轮询/嗅探/用户脚本被关，广告拦截保留
+
+[1m第七组 ⑯ 安全：没有口令的页面事件 / 元信息一律 403（别的网页伪造不了）[0m
+  页面伪造事件的返回: 
+  [31mFAIL[0m 伪造事件居然被受理了：
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 日志里记下了这次拦截
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 我们自己的页面事件照常送达（口令对）
+
+[1m第七组 ⑰ 主页改简洁（介绍挪进控制台「介绍」栏目）[0m
+  [31mFAIL[0m 主页没就位：
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 主页上的搜索框在（输词回车就走搜索引擎）：实际「0」≠ 期望「1」
+  [31mFAIL[0m 主页入口能打开控制台的指定栏目（省电）：实际「」≠ 期望「tab-power」
+  [31mFAIL[0m 「介绍」栏目没内容：
+
+[1m第七组 ⑱ 外部协议：先弹「用哪个 App 打开」，用户不确认就不跳[0m
+  [32mPASS[0m 页面没有被外部协议带走（URL 不变）（）
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 日志里写清了是「等用户确认」而不是自动打开
+
+[1m第七组 ⑲ 网络面板：请求时间线 + 统计（真记录，不是空架子）[0m
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 时间线里能看到刚才这一页发出的请求
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 媒体请求被标成媒体类型（不是全记成 other）
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 关掉记录后确实不再记（真关，不是只改显示）：实际「?」≠ 期望「0」
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 打开记录后又记得上（对照组成立）
+  [31mFAIL[0m 打开记录后还是 0 条
+
+[1m第七组 ⑳ 网络工具：解析 / 通路 / 测速（证书按实际情况给结论）[0m
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 本机 IP 能读出来（网卡+地址）
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 域名/IP 解析有结论（解析不出来也给出原因）
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 通路测试：对 App 自己的控制口建连成功且耗时合理
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 测速：从本地测试源真拉到字节并算出速率
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 证书探测对非 https 目标也给出明确结论（不编造证书）
+
+[1m第七组 ㉑ Cookie 详情：能看完整值，并如实说明属性拿不到[0m
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 详情里给出 name=value 列表，并写明 HttpOnly 等属性系统不暴露
+
+[1m第七组 ㉒ 一键导出/导入：导出的包能原地导回去，历史书签能合并回来[0m
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 导出成功并落到系统「下载」目录
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  导出包: （没找到）
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 导入把书签合并回来了（历史也按地址去重后合并）
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  书签数：导出前  → 删掉后  → 导入后 
+  [32mPASS[0m 导入后书签回到导出前的数量（ → ）
+
+[1m第七组 ㉓ 内置插件：阅读时间 / 纯文本（脚本真的跑起来了）[0m
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 两个内置插件已装进脚本清单
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 阅读时间插件在页面上真的跑了（日志里有它的估算）
+  [31mFAIL[0m 纯文本插件的入口按钮在页面上：实际「?」≠ 期望「true」
+
+[1m第七组 ㉔ 后台前台化：常驻服务真的起来了（熄屏也跑）[0m
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 常驻服务已启动
+  系统里看到 KeepAliveService 的次数: 0
+  [31mFAIL[0m 系统里看不到 KeepAliveService
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 能关掉（关掉后 running=false）
+
+[1m第七组 ㉕ AI 接口：能给正文/能操作，且默认不带隐私[0m
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 取到正文与结构（正文/链接/表单字段/按钮）
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 默认不带隐私：输入框里的值没有出现在返回里
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 返回里明确写了隐私说明（表单只报字段名与类型）
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m AI 接口能真的点页面元素（复用同一条点击链路）
+  [31mFAIL[0m 搜索动作没生效：
+
+[1m第七组 ㉖ 配置隔离：换个空间，历史/书签/脚本/设置各一套，互不污染[0m
+  [31mFAIL[0m 先回到主空间（切换是异步的，先确认切过去了）：实际「?」≠ 期望「default」
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 已切到隔离空间 ai-probe：实际「?」≠ 期望「ai-probe」
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  主空间书签  条；隔离空间书签  条
+  [31mFAIL[0m 隔离空间没生效： → 
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 切回主空间后条数没变（隔离空间那条没跑进来）：实际「?」≠ 期望「0」
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 再切回去它还在（数据真的落在那个空间的文件里）：实际「?」≠ 期望「1」
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  [31mFAIL[0m 空间列表能列出来
+---- 第七组 浏览器能力 退出码 3 ----
+
+汇总（0=全过）：第一组=0 第二组=0 第三组=0 第四组=0 第五组=0 第六组=0 第七组=1
+全量退出码=1

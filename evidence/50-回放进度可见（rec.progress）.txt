@@ -1,0 +1,55 @@
+① 回放进度可见（rec.progress）—— 实现与验收
+=============================================
+时间：2026-09-22   设备：模拟器 test35（Android 14 x86_64）
+用户原话：「对于录制脚本的播放，我觉得应该需要有显示出正在执行，包括点，包括执行那一步。」
+规格：docs/新需求规格-回放进度与视频指定位置.md 第一节
+（用户确认的形态：页面上正在执行的小点变橙、已执行的变绿 + 顶部一行小字）
+
+【改之前是什么样】
+页面里那份小点**本来就有** state（橙=current / 绿=done / 蓝=idle，`cdp-agent.js dotsRender`），
+但脚本回放一开始 `DotBus.setBusy(true)` → `pushDots()` 里 `on = dotsOn && !busy` → **整批隐藏**。
+所以回放时页面上什么都看不到，只能等结束后看回执。（当初藏起来的原因：小点 `pointer-events:auto`，
+注入的真实触摸打到点上会把这一步再点一遍 —— 成环，B-09。）
+
+【改了什么】
+· `cdp-agent.js`：小点 `pointer-events` 按 `DOTS.locked` 走（回放期间 none）；新增顶部进度小字
+  `#cdp-replay-progress`（`pointer-events:none`），文案 `回放 第 k/N 步 · <这一步在干什么>`；
+  `dotsSet` 新增 `locked` / `progress` 两个入参，`DOTS.progress` 与 `DOTS.list` 同一份 payload 下发。
+· `Bridge.kt`：
+  - `pushDots()`：回放期间**不再隐藏**小点，改为 `on=dotsOn` + `locked=DotBus.isBusy()`，并带上 `progress`；
+  - 回放主循环 `step(i)`：进入某步 → `dotState[i]="current"` + 设 `replayProgress{i,n,label}` + `pushDots()`
+    + `connStep("回放 第 i/N 步 · <label>")`；该步结束 → `dotState[i]= ok?"done":"idle"` + `pushDots()` + 写日志；
+  - 新一轮回放开始 `dotState.clear()`（上一轮的颜色不留）；结束 `replayProgress=null`（小字收掉，
+    小点保留绿色"哪儿跑过"一眼可见）；
+  - 小点自己点（`rec.runOne`）也走同一套（同样显示这一行小字）；
+  - 新增 `stepLabel(step)`：坐标步给"坐标 x,y(×N)"，元素步优先给它的文字，其次选择器，再次 URL。
+
+【验收 13 PASS / 0 FAIL】`python3 tools/verify_replay_progress.py`
+  == 1. 准备：测试页 + 清空队列 + 插 3 个带锚点的坐标步 ==
+    PASS 队列里有 3 个坐标步（测试数据就位）
+    回放前： {'prog': None, 'dots': {'1': 'idle', '2': 'idle', '3': 'idle'}, 'pe': 'auto', 'hits': 0}
+  == 2. 回放，同时按帧采样页面 ==（17 帧）
+    最后一帧：{'prog': None, 'dots': {'1': 'done', '2': 'done', '3': 'done'}, 'pe': 'auto', 'hits': 3}
+    PASS 回放中读到进度小字：'回放 第 1/3 步 · 坐标 120,240'
+    PASS 进度里带步数（第 k/3 步）
+    PASS 进度里说清了这一步在干什么（坐标步给了坐标）
+    PASS 回放中读到「正在执行」的小点：{"1": "current", "2": "idle", "3": "idle"}
+    PASS 回放中小点被锁住（pointer-events=none，防成环）
+    PASS 回放结束后三个点都是 done：{"1": "done", "2": "done", "3": "done"}
+    PASS 回放结束后顶部小字已收掉
+    PASS 回放结束后小点恢复可点（pointer-events=auto）
+    PASS 真点到位：测试页计数器 __hits=3（既没漏点也没成环）
+  == 3. 不成环（B-09 回归） ==
+    PASS 第 1/2/3 步在日志里各只出现 1 次
+
+  构件：apk/cdp-debug.apk  42038962 字节
+        sha256 e60b70a7a7d54a848624f44dcabcb7d93fa8d4b40691e0045e9268834de65174
+  构建：gradle --no-daemon --offline :app:assembleDebug → BUILD SUCCESSFUL
+
+【排查过程中的两个真坑（已写进脚本注释，避免下次假红）】
+1. 装包/重启 App 后 devtools socket 名变了（`webview_devtools_remote_<pid>`）→ 不重建 9222 转发，
+   uiprobe 静默拿不到控制台页面 → 我用控制台通道插入的步骤**全部无效**，表现为"回放没反应"（假 FAIL）。
+   现在 `verify_replay_progress.py` 开头自己 `adb forward` 重建。
+2. 坐标步必须带**位置锚点**（topPx/bottomPx/ratioY…）。只给 cx/cy 的裸坐标步回放时"五种策略都没找到目标"，
+   会失败并回落成 idle —— 那不是"没显示进度"，是"没点成"。改成带锚点的步后：13/13。
+   （第一版脚本就是这么假红的：小点状态其实推对了，日志里 `dots=0=current` 清清楚楚。）

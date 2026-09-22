@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CDP 内置播放器</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0B1117; color: #D7E4EF;
+         font-family: -apple-system, "Noto Sans CJK SC", sans-serif; }
+  header { padding: 10px 12px; border-bottom: 1px solid #1C2836; display: flex; gap: 8px; align-items: center; }
+  header .t { flex: 1 1 auto; font-size: 13px; color: #9FB3C6; word-break: break-all; }
+  .wrap { padding: 10px 12px 20px; }
+  video { width: 100%; background: #000; border-radius: 10px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  button { background: #17222E; color: #CFE0EE; border: 1px solid #223040; border-radius: 9px;
+           padding: 11px 14px; font-size: 14px; min-height: 44px; }
+  button.p { background: #1D4E75; border-color: #2F7DB5; }
+  .note { color: #7E93A6; font-size: 12.5px; margin-top: 10px; line-height: 1.6; }
+  a { color: #6FB6FF; }
+</style>
+</head>
+<body>
+<header>
+  <span class="t" id="url">-</span>
+</header>
+<div class="wrap">
+  <video id="v" controls playsinline preload="metadata"></video>
+  <div class="bar">
+    <button class="p" id="dl">⬇ 下载</button>
+    <button id="cast">📺 投屏</button>
+    <button id="hls">⬇ 下载 m3u8（含分片）</button>
+    <button id="copy">复制地址</button>
+    <button id="open">用浏览器打开</button>
+  </div>
+  <div class="note" id="note"></div>
+</div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var u = q.get('u') || '';
+  var n = q.get('n') || '';
+  var v = document.getElementById('v');
+  document.getElementById('url').textContent = u;
+  var note = document.getElementById('note');
+  var isHls = /\.m3u8(\?|$)/i.test(u);
+
+  function go(cmd) {
+    // 走自定义协议交回原生处理（我们自己的浏览器会拦下来，不会变成错误页）
+    location.href = 'cdpctl://' + cmd;
+  }
+  function enc(x) { return encodeURIComponent(x); }
+
+  if (u) {
+    v.src = u;
+    v.play().catch(function () {});
+  }
+  if (isHls) {
+    note.textContent = '这是一个 m3u8 播放列表：手机 WebView 内核不一定能直接播 HLS（取决于设备/编码）。'
+      + '可以直接下载播放列表与分片，或者复制地址到支持 HLS 的播放器/电视上播。';
+  }
+
+  document.getElementById('dl').addEventListener('click', function () {
+    go('download?u=' + enc(u) + '&n=' + enc(n));
+    note.textContent = '已交给应用内下载（存 App 私有目录，可在「下载」栏看到进度）。';
+  });
+  document.getElementById('hls').addEventListener('click', function () {
+    go('hls?u=' + enc(u) + '&n=' + enc(n));
+    note.textContent = '已开始下载 m3u8（播放列表 + 分片按顺序落盘）。';
+  });
+  document.getElementById('cast').addEventListener('click', function () {
+    go('cast?u=' + enc(u) + '&t=' + enc(n || u));
+    note.textContent = '正在搜局域网里的投屏设备（DLNA）…搜到后会弹出来让你选。';
+  });
+  document.getElementById('copy').addEventListener('click', function () {
+    go('copy?u=' + enc(u));
+    note.textContent = '地址已复制到剪贴板。';
+  });
+  document.getElementById('open').addEventListener('click', function () {
+    go('open?u=' + enc(u));
+  });
+})();
+</script>
+</body>
+</html>

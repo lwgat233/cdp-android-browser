@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>iframe 内层</title>
+<style>
+  body { font-family: sans-serif; margin: 0; padding: 8px; background: #101820; color: #EAF6FF; }
+  #innerBtn { margin-top: 10px; padding: 18px; background: #2F7DB5; border-radius: 8px; text-align: center; }
+  video { width: 100%; background: #000; border-radius: 8px; }
+  #innerCount { color: #9FE8B8; }
+</style></head>
+<body>
+<video id="innerVid" src="clip.webm" controls muted></video>
+<div id="innerBtn">iframe 里的按钮（点我）</div>
+<div>点了 <span id="innerCount">0</span> 次</div>
+<script>
+  var n = 0;
+  document.getElementById('innerBtn').addEventListener('pointerup', function () {
+    document.getElementById('innerCount').textContent = ++n;
+  });
+  document.getElementById('innerVid').addEventListener('click', function () {
+    document.getElementById('innerCount').textContent = (++n) + '（视频）';
+  });
+  window.__innerCount = function () { return n; };
+</script>
+</body></html>

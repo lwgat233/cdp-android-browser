@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>下载链路测试页</title>
+<style>
+  body { margin: 0; background: #0B0F13; color: #E6EDF3; font: 15px/1.6 sans-serif; padding: 18px; }
+  .box { background: #101821; border: 1px solid #1C2836; border-radius: 12px; padding: 14px; margin: 12px 0; }
+  a { color: #6FC3FF; }
+  code { background: #16202A; padding: 1px 5px; border-radius: 5px; font-size: 12.5px; }
+  .k { color: #9FB0BF; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1 style="font-size:19px">下载链路测试页</h1>
+<div class="box">
+  <div class="k">下面这个链接指向 App 自己控制口上的一个文件（<code>application/octet-stream</code> + <code>Content-Disposition: attachment</code>），
+  点它 WebView 不会去渲染，而是走下载回调 —— 也就是长按菜单里「下载链接」走的那条路。</div>
+  <p><a id="dl" href="http://127.0.0.1:8848/api/downloads/get?name=src-probe.bin"
+        download="src-probe.bin">点我下载 src-probe.bin</a></p>
+  <div class="k" id="tip">（需要先把 src-probe.bin 放进 App 的下载目录，见验收脚本）</div>
+</div>
+<div class="box">
+  <div class="k">当前 App 里的下载记录（从控制口读的，两边读数应当一致）：</div>
+  <pre id="list" style="white-space:pre-wrap;word-break:break-all;font-size:12.5px">读取中…</pre>
+</div>
+<script>
+  fetch('http://127.0.0.1:8848/api/downloads')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var l = (d.list || []).map(function (x) {
+        return x.name + '  ' + (x.bytes || 0) + ' 字节  ' + (x.state || '') + '  ' + (x.url || '');
+      });
+      document.getElementById('list').textContent = l.length ? l.join('\n') : '（还没有下载记录）';
+    })
+    .catch(function (e) { document.getElementById('list').textContent = '控制口读不到：' + e; });
+</script>
+</body>
+</html>

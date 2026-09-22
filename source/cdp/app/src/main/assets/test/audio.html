@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音频嗅探测试页</title></head><body>
+<h1>音频嗅探测试页</h1>
+<p>这一页就干一件事：让浏览器真的去取一条 MP3（同源，避免 https 页面加载 http 子资源被挡）。</p>
+<audio id="a" src="/test/sample.mp3" preload="auto" controls></audio>
+<p id="o">等它开始取…</p>
+<script>
+  var a = document.getElementById('a'), o = document.getElementById('o');
+  a.addEventListener('loadedmetadata', function () {
+    window.__CDP_AUDIO = { dur: a.duration, src: a.currentSrc || a.src };
+    o.textContent = '取到了：' + (a.currentSrc || a.src) + '　时长 ' + a.duration.toFixed(2) + 's';
+  });
+  a.addEventListener('error', function () { o.textContent = '取不到（浏览器报错）'; window.__CDP_AUDIO = { error: 1 }; });
+  try { a.load(); } catch (e) {}
+</script>
+</body></html>

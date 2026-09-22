@@ -1,0 +1,57 @@
+后台播放（熄屏/切后台继续放）· 原始证据
+====================================
+构件：apk/cdp-debug.apk（本轮重建）
+环境：Android 14 x86_64 模拟器；离线音频页 https://appassets.androidplatform.net/test/audio.html
+验收脚本：tools/verify_bgplay.py → **15 / 15 通过**
+
+一、怎么做的（三层）
+-------------------
+1. 前台服务类型跟着模式走：`KeepAliveService.startForegroundCompat()` 在 mediaPlayback 模式下用
+   `startForeground(id, n, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or FOREGROUND_SERVICE_TYPE_DATA_SYNC)`；
+   清单加 `FOREGROUND_SERVICE_MEDIA_PLAYBACK` 权限与 `foregroundServiceType="dataSync|mediaPlayback"`。
+   （Android 14 起不声明这个类型直接抛异常；系统也靠它判断"这是正在放媒体的 App"，后台/熄屏才不收紧。）
+2. partial 唤醒锁：熄屏后 CPU 会睡，放媒体时持一把 `cdp:bgplay` 唤醒锁（上限 6 小时），关掉立刻还。
+3. **不申请自己的音频焦点** —— 见下面"踩到的真缺陷"。
+页面侧：切后台时**不 pause WebView**（原来 onPause 只调 super，这块本来就对），所以媒体继续走。
+界面：省电与后台新增「后台播放（熄屏 / 切到后台继续放）」板块：一行状态 + 一个开关（登记表新增 sys.bgplay，
+自检 problems=[]）。
+
+二、验收读回来的事实
+--------------------
+[1] 打开离线音频页并真的开始播
+  PASS 前台时音频在走                        → currentTime=3.12
+[2] 打开后台播放
+  PASS 接口回报 media=true
+  PASS 前台服务类型带 mediaPlayback          → isForeground=true types=00000003（0x2=mediaPlayback｜0x1=dataSync）
+  [说明] 页面媒体的音频焦点由 Chromium 自己申请（dumpsys audio 里 callingPack=dev.cdp / USAGE_MEDIA）
+[2b] 回归：开着播放去开「后台播放」，不该把正在播的媒体掐停   ← 本轮修的就是这个
+  PASS 点开后台播放后仍在放（paused=false）
+  PASS 还在往前走（timeupdate 次数在涨）
+[3] 真按 HOME 把 App 切到后台
+  PASS App 真的退到后台（topResumedActivity = nexuslauncher）
+  [说明] 后台时页面 visibilityState 仍是 visible —— 我们故意不 pause WebView，它不知道自己在后台，这正是前提
+  PASS 后台期间音频仍然在放（paused=false）
+  PASS 后台 10 秒里播放真的在往前走          → timeupdate 38 → 77 次（+39）
+  PASS 后台期间时长也在累积                  → currentTime 1.15 → 3.09
+[4] 关掉后台播放
+  PASS 接口回报 media=false；状态里 media=false
+  PASS 关开关后页面仍在放（不被掐断）
+
+三、踩到的两个真缺陷（都修了，都留了断言）
+----------------------------------------
+① **抢音频焦点会把正在播的媒体掐停。**
+   WebView 里的 HTML 媒体由 Chromium 的 AudioFocusDelegate 自己申请焦点；服务里再申请一次 AUDIOFOCUS_GAIN，
+   Chromium 判定"焦点被抢走"→ 立刻 pause。实测：开着播放点开"后台播放"，paused 从 false 变 true、currentTime 停住。
+   修法：服务不抢焦点（保留代码仅供排查，注释写明原因），后台能不能继续放靠"前台服务类型 + 唤醒锁"。
+   断言：[2b] 开着播放去开后台播放，必须仍在放且进度在走。
+
+② **验收脚本自己会"静默通过"。**
+   `bash -lc` 会重置 PATH → 里面调 `adb` 找不到，输出空字符串，而断言写成 `"dev.cdp" not in s` 时**空串也通过**。
+   修法：adb 用绝对路径；"本该有输出的命令"读回空要报警告；
+   同类坑还有"用 currentTime 算后台进度"——循环播放会绕回去（6.9 → 0.8 其实又走了 6 秒），
+   改成数 `timeupdate` 触发次数（每 ~0.25 秒一次）。
+
+四、怎么用
+----------
+省电与后台 ▸ 「开 / 关后台播放」；开着时通知栏标题会变成"CDP 后台播放中"。
+适合：听歌/听书/看直播切出去，或者熄屏时脚本还在放。

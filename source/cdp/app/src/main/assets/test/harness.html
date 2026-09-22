@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CDP 自动化测试页</title>
+<style>
+  body { margin: 0; background: #0B0F13; color: #E6EDF3; font: 14px/1.5 -apple-system, "Noto Sans CJK SC", sans-serif; padding: 12px 12px 40px; }
+  h1 { font-size: 17px; margin: 6px 0; }
+  .k { color: #9FB0BF; font-size: 12px; }
+  .box { background: #101821; border: 1px solid #1C2836; border-radius: 10px; padding: 10px; margin: 10px 0; }
+  .t { font-weight: 600; margin-bottom: 4px; }
+  /* 难点 1：不是 <a>、也没有 onclick 的「按键」——很多移动端页面（含学习通那类）就是这样 */
+  #divBtn { display: inline-block; padding: 14px 22px; margin: 6px 0; background: #1D4E75; border: 2px solid #2F7DB5;
+            border-radius: 10px; color: #EAF6FF; user-select: none; }
+  /* 难点 2：被浮层盖住的按钮 */
+  #coveredWrap { position: relative; height: 64px; margin: 6px 0; }
+  #coveredBtn { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: #274B2E; color: #D6FFE0;
+                border: 2px solid #3E7A4C; border-radius: 10px; }
+  #cover { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: rgba(120,60,20,.55);
+           border: 2px dashed #C28A3A; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #FFE0B0; }
+  button { background: #1B2733; color: #CFE0EE; border: 1px solid #2A3A4A; border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+  a { color: #6FC3FF; }
+  .row { display: flex; gap: 8px; align-items: baseline; }
+  pre { background: #0A0F14; border: 1px solid #1C2836; border-radius: 8px; padding: 8px; font-size: 12px; white-space: pre-wrap; }
+  .list div { padding: 9px 6px; border-bottom: 1px solid #18222C; color: #9FB0BF; }
+</style>
+</head>
+<body>
+  <div class="advert" id="ad-slot" style="height:40px;background:#333;color:#fff">广告位（这个元素应该被"屏蔽不渲染"藏起来）</div>
+  <div class="banner-x" id="bx-slot" style="height:30px;background:#444;color:#fff">自定义规则测试位</div>
+
+<h1>CDP 自动化测试页</h1>
+<div class="k">离线页。四种「点不动 / 不好点」的情形都在这儿，回放脚本能不能真的点着，看这页的计数。</div>
+
+<div class="box">
+  <div class="t">① 普通按钮（对照组，最容易点）</div>
+  <button id="easyBtn">普通按钮</button>
+  <span class="k" id="easyN">点了 0 次</span>
+</div>
+
+<div class="box">
+  <div class="t">② 不是 &lt;a&gt;、也不是 button 的按键：只认 pointerup（el.click() 打不动它）</div>
+  <div id="divBtn">下一章（div，只认 pointerup）</div>
+  <div class="k" id="divN">触发 0 次；current chapter: 1</div>
+</div>
+
+<div class="box">
+  <div class="t">③ 被浮层盖住的按钮（真实手指也点不到）</div>
+  <div id="coveredWrap">
+    <button id="coveredBtn">被盖住的按钮</button>
+    <div id="cover">浮层：我在最上面</div>
+  </div>
+  <div class="k" id="covN">按钮触发 0 次；浮层被命中 0 次</div>
+</div>
+
+<div class="box">
+  <div class="t">④ 列表底部的按键（不滚动就够不着）</div>
+  <div class="list" id="list"></div>
+  <div id="deepBtn" style="display:inline-block;padding:14px 22px;background:#3A2C5A;border:2px solid #6B53A8;border-radius:10px;color:#EADFFF;">列表底部的「下一章」</div>
+  <div class="k" id="deepN">触发 0 次</div>
+</div>
+
+<div class="box">
+  <div class="t">⑤ 视频：等它真的播完，再点「下一个」（用来看「监听播放结束」是否可靠）</div>
+  <video id="vid" src="clip.webm" playsinline muted
+         style="width:100%;max-width:320px;border-radius:8px;background:#000;display:block"></video>
+  <div class="inline" style="margin-top:6px">
+    <button id="playBtn">播放</button>
+    <span class="k" id="vidN">还没开始播</span>
+  </div>
+  <div id="nextAfterVideo" style="display:none;margin-top:8px;padding:14px 22px;background:#1D4E75;
+       border:2px solid #2F7DB5;border-radius:10px;color:#EAF6FF;user-select:none">看完了 → 继续下一节（div，只认 pointerup）</div>
+  <div class="k" id="nextN">「下一个」触发 0 次</div>
+</div>
+
+<div class="box">
+  <div class="t">命中几何（用来核对注入的坐标对不对）</div>
+  <pre id="geo">还没有收到 pointerdown</pre>
+</div>
+
+<div class="box">
+  <div class="t">链接对照</div>
+  <a id="linkBtn" href="#here">普通 &lt;a&gt; 链接（对照组）</a>
+  <div class="k" id="linkN">触发 0 次</div>
+  <div style="margin-top:8px">
+    <a id="dlLink" href="clip.webm" download="clip.webm">带 download 属性的链接（用来验「下载」这条链）</a>
+  </div>
+  <div class="k" id="dlN">下载还没试过</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var H = window.H = {
+    counts: { easy: 0, div: 0, covered: 0, cover: 0, deep: 0, link: 0 },
+    trusted: { easy: null, div: null, deep: null },
+    events: [],
+    lastGeo: null,
+    chapter: 1
+  };
+
+  function rec(name, ev, el) {
+    H.events.push({ name: name, type: ev.type, trusted: !!ev.isTrusted, x: Math.round(ev.clientX || 0), y: Math.round(ev.clientY || 0), ts: Date.now() });
+    if (H.events.length > 200) H.events.shift();
+    if (el) {
+      var r = el.getBoundingClientRect();
+      H.lastGeo = {
+        name: name, type: ev.type, trusted: !!ev.isTrusted,
+        clientX: Math.round(ev.clientX || 0), clientY: Math.round(ev.clientY || 0),
+        elLeft: Math.round(r.left), elTop: Math.round(r.top), elW: Math.round(r.width), elH: Math.round(r.height),
+        localX: Math.round((ev.clientX || 0) - r.left), localY: Math.round((ev.clientY || 0) - r.top),
+        inside: (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom),
+        vw: window.innerWidth, vh: window.innerHeight
+      };
+      document.getElementById('geo').textContent = JSON.stringify(H.lastGeo, null, 1);
+    }
+  }
+
+  // ① 普通按钮
+  var easy = document.getElementById('easyBtn');
+  easy.addEventListener('click', function (e) {
+    H.counts.easy++; H.trusted.easy = !!e.isTrusted;
+    document.getElementById('easyN').textContent = '点了 ' + H.counts.easy + ' 次（isTrusted=' + e.isTrusted + '）';
+  });
+
+  // ② 关键：这个 div 只挂 pointerup / touchend —— 和「不是 a 标签点不动」的按键同一类
+  var divBtn = document.getElementById('divBtn');
+  function onNext(e) {
+    H.counts.div++; H.trusted.div = !!e.isTrusted;
+    rec('div', e, divBtn);
+    H.chapter++;
+    divBtn.textContent = '下一章（第 ' + (H.chapter + 1) + ' 章）';
+    document.getElementById('divN').textContent = '触发 ' + H.counts.div + ' 次（isTrusted=' + e.isTrusted + '）；current chapter: ' + H.chapter;
+  }
+  divBtn.addEventListener('pointerup', onNext);
+  divBtn.addEventListener('touchend', function (e) { if (!window.PointerEvent) onNext(e); });
+  divBtn.addEventListener('click', function (e) { rec('div-clickspy', e, divBtn); });   // 只记录，不计数：click 不算数
+
+  // ③ 被盖住
+  var cov = document.getElementById('coveredBtn');
+  cov.addEventListener('click', function (e) {
+    H.counts.covered++;
+    document.getElementById('covN').textContent = '按钮触发 ' + H.counts.covered + ' 次；浮层被命中 ' + H.counts.cover + ' 次';
+  });
+  var cover = document.getElementById('cover');
+  cover.addEventListener('click', function (e) {
+    H.counts.cover++;
+    rec('cover', e, cover);
+    document.getElementById('covN').textContent = '按钮触发 ' + H.counts.covered + ' 次；浮层被命中 ' + H.counts.cover + ' 次';
+  });
+
+  // ④ 深列表
+  var list = document.getElementById('list');
+  for (var i = 1; i <= 60; i++) {
+    var d = document.createElement('div');
+    d.textContent = '列表第 ' + i + ' 行（占位，用来把按钮顶下去）';
+    list.appendChild(d);
+  }
+  var deep = document.getElementById('deepBtn');
+  deep.addEventListener('click', function (e) {
+    H.counts.deep++; H.trusted.deep = !!e.isTrusted;
+    rec('deep', e, deep);
+    document.getElementById('deepN').textContent = '触发 ' + H.counts.deep + ' 次（isTrusted=' + e.isTrusted + '）';
+  });
+
+  // 链接
+  var link = document.getElementById('linkBtn');
+  link.addEventListener('click', function (e) {
+    H.counts.link++;
+    rec('link', e, link);
+    document.getElementById('linkN').textContent = '触发 ' + H.counts.link + ' 次（isTrusted=' + e.isTrusted + '）';
+  });
+
+  // ⑤ 视频：真的播放、真的等到 ended，再把「下一个」露出来
+  H.video = { plays: 0, ended: false, endedAt: 0, starts: 0, duration: 0, currentTime: 0 };
+  H.counts.afterVideo = 0;
+  var vid = document.getElementById('vid');
+  var nextAfterVideo = document.getElementById('nextAfterVideo');
+  vid.addEventListener('loadedmetadata', function () {
+    H.video.duration = vid.duration;
+    document.getElementById('vidN').textContent = '视频已加载，时长 ' + vid.duration.toFixed(2) + ' 秒（还没播）';
+  });
+  vid.addEventListener('play', function () {
+    H.video.plays++; H.video.starts++;
+    H.video.ended = false;
+    nextAfterVideo.style.display = 'none';
+    document.getElementById('vidN').textContent = '播放中…（第 ' + H.video.plays + ' 次）';
+  });
+  vid.addEventListener('timeupdate', function () { H.video.currentTime = vid.currentTime; });
+  vid.addEventListener('ended', function () {
+    H.video.ended = true; H.video.endedAt = Date.now();
+    nextAfterVideo.style.display = 'inline-block';
+    document.getElementById('vidN').textContent = '播放结束（ended 已触发，第 ' + H.video.plays + ' 次）';
+    rec('videoEnded', { type: 'ended', isTrusted: true, clientX: 0, clientY: 0 }, vid);
+  });
+  document.getElementById('playBtn').addEventListener('click', function () {
+    vid.muted = true;
+    vid.play();
+  });
+  nextAfterVideo.addEventListener('pointerup', function (e) {
+    H.counts.afterVideo++; H.trusted.afterVideo = !!e.isTrusted;
+    rec('nextAfterVideo', e, nextAfterVideo);
+    document.getElementById('nextN').textContent = '「下一个」触发 ' + H.counts.afterVideo + ' 次（isTrusted=' + e.isTrusted + '）';
+  });
+
+  document.addEventListener('pointerdown', function (e) { rec('doc', e, e.target); }, true);
+})();
+</script>
+  <script src="/test/adsim.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+Cookie 属性（HttpOnly / 过期时间）为什么在界面上是"无效值" —— 实测记录
+====================================================================
+时间：2026-09-22    设备：模拟器 test35（Android 14 x86_64，docker 无头）
+构件：apk/cdp-debug.apk（未改代码、未重新构建；本轮只做实验）
+测试页：tools/cookietest/serve.py（项目自带；宿主 8899 端口，设备走 http://10.0.2.2:8899/）
+        一次下发 5 条 cookie：hocookie(HttpOnly, Max-Age=86400, SameSite=Lax)、
+        sec_cookie(Secure, http) 、plain(Max-Age=3600)、session_only(无 Max-Age)、plus_attr(HttpOnly+Secure+SameSite=None)
+        + 页面 JS 写 jscookie
+
+一、先确认"能不能拿到属性" —— 能
+    adb shell run-as dev.cdp find . -name 'Cookies*'
+      → app_webview/Default/Cookies（伴生 -journal）；Default/Network/Cookies 不存在
+    库的列（pragma table_info(cookies)）：
+      creation_utc, host_key, top_frame_site_key, name, value, encrypted_value, path,
+      expires_utc, is_secure, is_httponly, last_access_utc, has_expires, is_persistent,
+      priority, samesite, source_scheme, source_port, is_same_party, last_update_utc
+    等 60 秒后读该域 5 行（host_key=10.0.2.2）：
+      (10.0.2.2, cdp_test,     is_secure=0, is_httponly=0, has_expires=0, expires_utc=0,                 samesite=-1, scheme=1)
+      (10.0.2.2, hocookie,     is_secure=0, is_httponly=1, has_expires=1, expires_utc=13434602688360188, samesite=1,  scheme=1)
+      (10.0.2.2, jscookie,     is_secure=0, is_httponly=0, has_expires=0, expires_utc=0,                 samesite=-1, scheme=1)
+      (10.0.2.2, plain,        is_secure=0, is_httponly=0, has_expires=1, expires_utc=13434519888360292, samesite=-1, scheme=1)
+      (10.0.2.2, session_only, is_secure=0, is_httponly=0, has_expires=0, expires_utc=0,                 samesite=-1, scheme=1)
+    → HttpOnly 标记、真实过期时间、SameSite 都拿得到（Secure 那两条在 http 页面上浏览器本来就不收，不算缺失）
+
+二、真因 1：**库里的那份滞后**（新写的 cookie 还没落盘）
+    清空 cookie → 打开测试页 → 3 秒后读库：该域行数 = **0**（5 条全不在）
+    触发一次 CookieManager.flush()（调 /api/cookie/set，其内部 flush）→ **1 秒后再读：5 条全在**，
+      含 (hocookie, is_httponly=1, has_expires=1, expires_utc=13434602809201602)
+    复验：不清也不 flush 时，等 60 秒后同样能出现。
+    → 用户"刚打开网站看 cookie，属性全是无效值"就是这个：读库时库里还没这一行。
+
+三、真因 2：**界面根本没接后端的数据**（写死文案）
+    assets/ui/app.js:2441-2444  列表行的 data-fields 里，属性那一项是**字面量**：
+      ['属性', 'Android 只给 名称=值；HttpOnly / Secure / Path / 过期时间系统不提供（不是没取）']
+    后端 MainActivity.cookiesFor() 已经是 cookieDb.merge(arr)，返回里带 httpOnly/secure/path/created/lastAccess/expires。
+    同理 /api/cookie/detail 的 note 也是这句写死文案。
+    → 后端有值、前端不显示：用户看到的"无效值"就是这句。
+
+四、后端接口面已经正常（清空后重走一遍，等 flush）
+    /api/cookies 该域：
+      hocookie     | httpOnly=True  | secure=False | path=/ | expires=2026-09-23 02:04:48 | attrFrom=True
+      plain        | httpOnly=False | secure=False | path=/ | expires=2026-09-22 03:04:48 | attrFrom=True
+      session_only | httpOnly=False | secure=False | path=/ | expires=会话期（关掉浏览器就失效） | attrFrom=True
+      jscookie     | httpOnly=False | secure=False | path=/ | expires=会话期（关掉浏览器就失效） | attrFrom=True
+      cdp_test     | httpOnly=False | secure=False | path=/ | expires=会话期（关掉浏览器就失效） | attrFrom=True
+
+五、附带结论：HttpOnly 的**值**不用 CDP（实测）
+    /api/cookie/detail?domain=10.0.2.2 的 CookieManager 列表里**包含** hocookie=ho_val
+    → Android 的 CookieManager.getCookie() 会返回 HttpOnly cookie 的值；缺的只是"标记"。
+
+六、备选路 CDP 也能成（无落盘时延）
+    adb forward tcp:9222 localabstract:webview_devtools_remote_$PID
+    /json/version 的 browser target 上调 Network.getAllCookies → **总数=0**（踩坑）
+    /json/list 的 **page target** 上同样调用 → 总数=10，其中该域 5 条：
+      {domain:10.0.2.2, name:hocookie, value:ho_val, httpOnly:true, secure:false, session:false,
+       expires:1790129088.36, sameSite:"Lax", size:14}
+    工具：tools/cookietest/cdp_cookies.mjs（零依赖，node 内置 WebSocket；用法与坑见 tools/cookietest/README.txt）
+
+七、顺带发现的小问题
+    cache/cookiedb/ 里残留 Cookies.copy-journal（CookieDb 只删主文件，没删 -wal/-journal 副本）
+
+结论：**都能做**。需要改的只有两处：① 后端读属性前先 flush（或给个刷新入口）；
+② 前端把真属性接上，删掉那句写死文案。数据层不用重做。

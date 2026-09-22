@@ -1,0 +1,51 @@
+# 第六组"组合跑时 4 条连锁失败"的现场证据（环境问题，不是应用缺陷）
+
+## 1. 现象（组合跑 /tmp/cdp_all_final.log 里第六组开头四条）
+
+```
+FAIL 拿不到点击坐标（界面没就位）
+FAIL 点一下真的拿到焦点（以前 focused=false、键盘都不弹）
+FAIL 全选生效：打字把旧 URL 整条替换掉（不是插到中间）
+FAIL 回车真的触发了导航（按输入内容去搜）
+小结：通过 11 项 / 失败 4 项
+```
+
+第一条是根：工具栏没就位 → 后面三条（焦点 / 全选 / 回车）是跟着红的连锁，不是各自独立的缺陷。
+
+## 2. 同时刻的系统日志（`adb logcat -d -v time`，模拟器内时间）
+
+```
+09-18 00:41:10.392 I/WindowManager: ANR in ActivityRecord{6bc190d u0 com.google.android.apps.nexuslauncher/.NexusLauncherActivity t336}.
+                                   Reason: Input dispatching timed out (Application does not have a focused window)
+09-18 00:41:17.258 E/ActivityManager: ANR in com.google.android.apps.nexuslauncher (com.google.android.apps.nexuslauncher/.NexusLauncherActivity)
+09-18 00:41:17.967 D/CoreBackPreview: Window{… Application Not Responding: com.google.android.apps.nexuslauncher}: Setting back callback …
+09-18 00:47:06.612 I/WindowManager: WIN DEATH: Window{370b915 u0 com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity}
+09-18 00:47:06.835 W/InputManager-JNI: Input channel object 'e8c8d19 Application Not Responding: com.google.android.apps.nexuslauncher (client)' was disposed …
+```
+
+失败当刻的窗口状态：
+
+```
+mCurrentFocus=null
+mFocusedApp=ActivityRecord{6bc190d u0 com.google.android.apps.nexuslauncher/.NexusLauncherActivity t336}
+```
+
+即：模拟器自带的 NexusLauncher 被系统判 ANR → 系统弹出"应用无响应"窗口 → 焦点被它抢走
+（`mCurrentFocus=null`，`mFocusedApp` 还是 Launcher）→ 这时 `uiautomator dump` 拿到的层级里
+本 App 的工具栏不完整，于是"拿不到点击坐标"。**本 App 的进程没有被杀，也没有崩溃日志**。
+
+## 3. 单跑同一组（`bash tools/verify_ui.sh`，同一台模拟器、同一份构件）
+
+```
+小结：通过 14 项 / 失败 0 项
+第六组退出码=0
+```
+
+## 4. 结论与做法
+
+- 结论：这是一处**已知环境问题**（无头模拟器 + 自带 Launcher），不是应用缺陷；
+  本项目此前也出现过同一处（报告里写过 "NexusLauncher ANR → WIN DEATH → 焦点漂走"）。
+- 做法：验收脚本已经在用 `wait_toolbar()`（等 dump 里出现工具栏 `⟳` 再量坐标）；
+  但 Launcher ANR 会让焦点被"应用无响应"窗口整段占住，等待也等不回来。
+  所以流程上：**发现这四条连锁失败时单跑该组复核**，并把两份原始输出都留档，不写成"偶发"了事。
+- 这不是把红灯涂绿：两份输出（组合跑里 11/4 与单跑 14/0）都在 `evidence/` 里，读者可以自己判。

@@ -1,0 +1,28 @@
+项目名　　：cdp（安卓 WebView 浏览器 / 控制台）
+测试版本　：测试-20260921-1155-03
+测试的功能：28条收尾-aria2与省电排序
+打包时间　：2026-09-21 11:55:34
+构件哈希　：sha256 f60c0675ffb113478ea532ac6094df9c36109ef849b1262b3de68887ee9f66dc
+构件大小　：42041602 字节
+APK 路径　：/vol1/1000/airesults/cdp/apk/测试版/cdp-28条收尾-aria2与省电排序-测试-20260921-1155-03.apk
+源码快照　：source/cdp（app/src/main/assets/build-info.json 里写着同一个测试版本，装上去能对得上）
+包名/入口 ：dev.cdp / dev.cdp.MainActivity
+
+怎么装：
+  adb install -r cdp-28条收尾-aria2与省电排序-测试-20260921-1155-03.apk
+怎么确认装的是这一版：
+  curl -s http://127.0.0.1:8848/api/status          # 看版本与 build-info
+  adb shell 'cat /data/data/dev.cdp/files/... '     # 或界面「介绍 ▸ 版本」
+该跑哪些验收（本轮改动过的那几块，逐个跑）：
+  tools/verify_aria2.py            第6条 aria2 外部下载（假 aria2 两边对账，16/16）
+  tools/verify_power_sort.py       第10条 省电两类排序（排序已过；「点小窗开关」那条待修）
+  tools/verify_windows.py          第28条 多窗口持久 + 保活≤10（10/10）
+  tools/verify_vault_panel.py      第20条 密码库全局面板（14/14）
+  tools/verify_selfproxy_perm.py   第16/24条 自代理统流量 + 不再申请权限（13/13）
+  tools/verify_appgrid.py          首页小 app 网格（12/12）
+  tools/env_health.py              跑任何验收之前先跑它（必须 READY）
+  （按用户要求：只测这个功能，不跑全量；先 tools/env_health.py 确认环境 READY）
+
+说明：
+  这是"只测一个功能"的测试版构件，放在 apk/测试版/ 下，文件名自带功能与版本；
+  同一份说明书与本 APK 一一对应（哈希可核）。

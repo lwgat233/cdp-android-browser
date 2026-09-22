@@ -1,0 +1,39 @@
+
+[1m1. 外部 CDP：能看到哪些页面 target[0m
+  [page] 活  CDP 控制台
+      https://appassets.androidplatform.net/ui/index.html
+      ws://127.0.0.1:9222/devtools/page/0C829F9779CB57B30BCEA1BF8F705FD0
+  [page] 活  脚本已生效
+      https://appassets.androidplatform.net/test/harness.html
+      ws://127.0.0.1:9222/devtools/page/6301DF18DD3EBC624295CC1FFD69D19D
+  [32mPASS[0m 能看到浏览器页面 target
+  [32mPASS[0m 能看到控制台页面 target
+
+[1m2. 外部 CDP：读当前页面（不依赖 App 接口）[0m
+  CDP 读到标题：CDP 自动化测试页
+  [32mPASS[0m 外部 CDP 能读到页面标题
+
+[1m3. 外部 CDP：自己发起的导航真的生效[0m
+  [32mPASS[0m CDP 发起的导航生效（现在标题：新标签页）
+  [32mPASS[0m App 侧也看到同一页面（两边观察一致）
+
+[1m4. 两条通道读同一个值，必须一致[0m
+  App 接口：CDP 自动化测试页　｜　外部 CDP：CDP 自动化测试页
+  [32mPASS[0m 两个独立通道读数一致（CDP 自动化测试页）
+
+[1m5. 外部 CDP：注入一次鼠标点击[0m
+  目标 #easyBtn 中心(css)：65,152　当前计数：0
+  mouse seq sent
+  [32mPASS[0m 外部注入的鼠标点击真的触发了页面处理器（easy=1）
+
+[1m6. 资源占用[0m
+  pid=2934　内存： TOTAL 103099 58848 13512 335 233624 41987 30210 7734
+  VmRSS:	  231780 kB
+  Threads:	50
+  宿主：总 7851MB 可用 2235MB　模拟器容器：Up About an hour
+
+[1m7. 稳定性[0m
+  [32mPASS[0m 本轮 logcat 没有 FATAL / ANR
+  页面侧报错（最后几条）：[07:11:17.152] 页面错误: Access to XMLHttpRequest at 'https://cdp-event.local/ev?d=%7B%22t%22%3A%22log%22%2C%22msg%22%3A%22%E4%BC%AA%E9%80%A0%22%7D' from origin 'https://appassets.androidplatform.net' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @:7
+
+[1m小结：通过 8 项 / 失败 0 项[0m

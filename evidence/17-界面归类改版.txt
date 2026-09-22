@@ -1,0 +1,74 @@
+本轮（界面归类改版 + 嗅探广度）原始证据
+=========================================
+时间：2026-09-20 凌晨（连续迭代）
+构件：apk/cdp-debug.apk（41715695 字节 → 本轮重建后 41973747 字节）
+      sha256 9c555ee2a2cbf35907ceaa70b13e78d9…（完整值见 apk/apk-sha256.txt）
+环境：Android 14 x86_64 无头模拟器（emulator-5554）；App 自带 HTTP 控制口 127.0.0.1:8848；WebView devtools 9222
+说明：以下都是命令的原始输出（未编辑），要看结论去哪一层就往下翻。
+
+一、功能登记表（registry.js）自检 —— 就是"一个功能只属于一个集合"的机器可读检查
+    命令：node tools/uiprobe.mjs "JSON.stringify(window.__cdpRegistry())"
+    结果：{"ok":true,"collections":7,"tabs":24,"features":45,"boards":45,
+           "byColl":[{"key":"browse","tabs":3,"features":6},{"key":"auto","tabs":4,"features":10},
+                     {"key":"privacy","tabs":4,"features":5},{"key":"media","tabs":3,"features":7},
+                     {"key":"records","tabs":3,"features":3},{"key":"api","tabs":3,"features":6},
+                     {"key":"system","tabs":4,"features":8}],"problems":[]}
+    意义：45 个功能 / 45 个板块一一对应，没有"登记了但页面上没有"或"页面上有但没登记"的差集。
+
+    ★ 自检真的抓到过一次缺陷（这就是它存在的意义）：
+      在把三块 Cookie 合并成一块、把广告拦截与屏蔽名单合并成一份规则库的过程中，
+      替换 sniff 栏目 HTML 时连带吞掉了 sniff-add / sniff-note 两个板块，界面上少了两块、三个键变成死键。
+      自检报了两条：{"board":"sniff-add","problem":"登记了但 HTML 里没有这个板块"}、
+                      {"board":"sniff-note","problem":"登记了但 HTML 里没有这个板块"}
+      另有 __cdpMissing() 报出 sn-add / sn-go / sn-play 三个 id 在页面上找不到。补回 HTML 后归零。
+
+二、CDP 探针（真进程内的页面状态）22/22
+    命令：node tools/cdp.mjs file --target ui/index.html --file tools/probe_ui_round.js
+    结果：ok=True  22/22 项通过
+    覆盖：登记表自检 / 45 个板块全部 data-mounted / 界面没有缺 id / 7 个集合行 + 24 个栏目按钮 /
+          不是横排（#tabs display:block）/ 点集合能展开 / 点栏目能切 section / 面包屑写明 集合▸栏目 /
+          「更多 ▾」点一下能展开且盒子里有键 / 全界面没有任何一行超过 3 个键 /
+          点列表行弹出小窗 / 警告名单并进规则库后能加能读能删、老的 security.block.* 仍指同一份数据
+
+三、真手指验收 14/14（adb shell input tap，坐标现测）
+    命令：python3 tools/verify_ui_round.py
+    结果：14/14 通过
+    过程摘录（坐标都是从 uiautomator dump 的 bounds 现取的，没有写死）：
+      [1] 真手指点 ☰   id=drawerBtn bounds=[22,275][143,391] → (82,333)
+      [2] 抽屉 7 个集合行都在无障碍树里有实际大小：
+          collhead-browse/auto/privacy/media/records/api/system；文案形如「▸ 接口与隔离　6 个功能」
+          页面里栏目按钮总数 = 24（== 登记表的栏目数）；无障碍树里可点的栏目 == 展开集合的栏目数（3）
+      [3] 真手指点「集合 接口与隔离」 bounds=[22,1752][712,1876] → (367,1814) → DOM 读回 coll-api 已展开
+      [4] 真手指点「栏目 配置空间」 bounds=[66,2154][712,2275] → (389,2214) →
+          内容区 tab-space 变 on，抽屉面包屑「当前：接口与隔离 › 配置空间」
+      [5] 真手指点「更多 ▾」 id=h-more bounds=[684,545][852,658] → (768,601) →
+          点之前收起、点完 h-export / h-export-json / h-del-* 才拿到实际大小（可见可点）
+      [6] 抽屉搜索输入「拦截」→ 只剩「拦截与名单」这一个栏目可见（其余全部 hide）
+      [7] 收尾回「页面与元素」
+    为什么要真手指：合成事件只能证明逻辑通；这个界面里有浮层、有折叠、有横向排布，
+    只有真点一次并读回状态才能说明"用户点得到"。
+
+四、死键扫描（每个控件都查监听器，0 个死键才算过）
+    命令：node tools/cdp.mjs listeners --target ui/index.html --selector "button,select,input"
+    结果：total=227  dead=0   deadKeys=[]   fieldsWithoutListener=[]（改版后依然 0 死键）
+
+五、后端合并（一份规则库）在两条通道上都验过
+    ① 应用内 op（控制台走的那套）：
+       adblock.warn.add {host:probe.example.com} → ok=true
+       adblock.get → warn 列表里能看到这条（rules=43）
+       security.block.list（老 op）→ 同一份数据里也能看到 → 老接口没被破坏
+       adblock.warn.remove → ok=true
+    ② HTTP 控制口（电脑侧 curl，另一条通道）：
+       GET /api/adblock/warn/add?host=http-probe.example.com → {"ok":true}
+       GET /api/adblock            → warn=['http-probe.example.com']  rules=43
+       GET /api/security/block     → {"ok":true,"list":["http-probe.example.com"]}
+       GET /api/adblock/warn/remove?host=… → {"ok":true}
+    ③ 迁移：老的 settings 里那条逗号串（blockHosts）在启动时一次性并进规则库并清空原键，
+       命中判断全部改走 AdBlock.matchWarn()（警告条与页面安全结论共用同一个匹配器）。
+
+六、已知未覆盖 / 边界
+    - 真机未测（本轮全部结论来自 Android 14 x86_64 模拟器）。
+    - 折叠起来的集合里的栏目是 display:none —— 无障碍树里没有大小是正常的，不是缺陷；
+      验收脚本按"展开的集合"现算期望值（这一点踩过假红，已写进 skill）。
+    - 抽屉搜索的中文输入用 CDP 设值触发（adb shell input text 打不了中文），
+      真手指只覆盖了 ☰ / 集合行 / 栏目行 / 更多 ▾ 这些"点得到"的关键路径。

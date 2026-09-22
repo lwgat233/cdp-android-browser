@@ -1,0 +1,81 @@
+多站点资源嗅探 + 音频（MP3）获取 · 原始证据
+==========================================
+时间：2026-09-20 凌晨；构件 sha256 9c555ee2a2cbf359…（41973747 字节）
+环境：Android 14 x86_64 模拟器；两条通道：App 自己的浏览器（WebView）+ HTTP 控制口 127.0.0.1:8848
+跑法：python3 tools/verify_sniff_sites.py（脚本本身就是"清空→打开站→等它自己取→读回清单→真下载对账"）
+
+本轮为嗅探做的三件事（都来自"多个视频网站实测"的要求）：
+  ① 认得更全：hls(m3u8)/dash(mpd)/视频(mp4 m4v m4s fmp4 cmfv f4v webm mkv flv)/
+     音频(mp3 m4a m4b aac flac opus ogg oga weba wav)/字幕(vtt srt ass)，每条带 host/文件名/归类；
+  ② 分片不再刷屏：同一路（同目录）的 .ts/.m4s 合并成一条「分片 ×N」；
+  ③ 第二条抓取路径：从页面里再扫一遍（performance 资源 + video/audio/source 标签），
+     并对 MSE(blob:) 站点如实说明"直链不在请求层"。
+
+== 多站点嗅探实测 ==
+
+[离线 · HLS 分片页（像 hls.js 那样取片）]
+  http://127.0.0.1:8848/api/_test/hls/page.html
+  归类：播放列表 1 / 视频 0 / 音频 0 / 分片 1 / 字幕 0（共 2）
+  从页面里再扫：新增 0（扫到 4 条，MSE=False）
+    - [m3u8/playlist] 127.0.0.1 index.m3u8
+    - [ts/frag] 127.0.0.1 seg1.ts 分片×6
+
+[离线 · 音频页（一条真 MP3）]
+  https://appassets.androidplatform.net/test/audio.html
+  归类：播放列表 0 / 视频 0 / 音频 1 / 分片 0 / 字幕 0（共 1）
+  从页面里再扫：新增 0（扫到 1 条，MSE=False）
+    - [mp3/audio] appassets.androidplatform.net sample.mp3
+
+[离线 · 功能测试靶]
+  https://appassets.androidplatform.net/test/harness.html
+  归类：播放列表 0 / 视频 1 / 音频 0 / 分片 0 / 字幕 0（共 1）
+  从页面里再扫：新增 0（扫到 2 条，MSE=False）
+    - [webm/video] appassets.androidplatform.net clip.webm
+
+[B 站（视频页）]
+  https://www.bilibili.com/video/BV1GJ411x7h7
+  归类：播放列表 0 / 视频 1 / 音频 0 / 分片 0 / 字幕 0（共 1）
+  从页面里再扫：新增 0（扫到 9 条，MSE=False）
+    - [mp4/video] cn-jxjj-ct-01-02.bilivideo.com 137649199_da2-1-16.mp4
+
+[公开 HLS 直链（境外）]
+  https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+  归类：播放列表 1 / 视频 0 / 音频 0 / 分片 0 / 字幕 0（共 1）
+  从页面里再扫：新增 0（扫到 4 条，MSE=False）
+    - [m3u8/playlist] test-streams.mux.dev x36xhzz.m3u8
+
+== 音频下载对账（离线靶子，字节要相等） ==
+  嗅探清单：{"total": 1, "playlist": 0, "video": 0, "audio": 1, "frag": 0, "sub": 0, "other": 0}
+  下载记录：{"name": "probe-audio.mp3", "url": "http://127.0.0.1:8848/api/_test/audio/sample.mp3", "bytes": 198658, "total": 198658, "state": "完成", "ts": 1789838557424, "incognito": false, "path": "/data/user/0/dev.cdp/files/downloads/probe-audio.mp3"}
+  字节对账：通过（期望 198658，实际 198658）
+
+== 外网异常时的现场（如实记录，不当成 App 缺陷） ==
+
+明细已写 /tmp/sniff_sites.json
+
+
+对账与结论
+----------
+· 离线 HLS 分片页：清单里是「播放列表 1 + 分片 1」，分片那条显示 分片×6 ——
+  6 次分片请求合并成 1 条（以前会把清单刷爆）。这是"分片合并"的正例。
+· 离线音频页：mp3/audio 被登记；随后用控制口另开的离线音频源真下载一次，
+  下载记录 bytes=198658 == 期望 198658，state=完成，落在 App 私有目录。
+  （assets/test/sample.mp3 这条素材是宿主侧从 Internet Archive 取回的真 MP3：
+   file 判定 MPEG ADTS, layer III, v1, 128 kbps, 44.1 kHz；打包进 assets 后离线可复现）
+· B 站视频页：抓到的是页面预加载的那条 mp4（bilivideo CDN，带 Referer 校验）；
+  正片走 MSE（blob:），分片不在 WebView 的请求回调里 —— 界面上会明说这条边界，不当 bug 报。
+· 公开 HLS 直链（test-streams.mux.dev）：播放列表被记下（境外直连可达）。
+· 环境异常如实记录：这个模拟器容器里的 DNS 对部分域名（archive.org）返回了错误地址
+  （解析到 face:b00c 段的地址），App 日志里是
+  "下载失败：SocketTimeoutException: failed to connect to archive.org/2a03:2880:f10e:83:face:b00c:0:25de"。
+  宿主侧同一地址 curl 正常（200，198658 字节）→ 这是**容器网络/DNS 的环境问题**，不是 App 缺陷；
+  因此音频链路的验收改用"离线音频源"来保证可复现（仍然是真的 http + 真的字节）。
+
+本轮顺手修的缺陷
+----------------
+· 下载器遇到 App 自己的虚拟源地址（appassets/cdp-event/cdp-meta）会抛 UnknownHostException，
+  用户看着像"网络坏了"。现在直接给一句人话：这是 App 内部虚拟地址，外部下载器取不到，
+  请用真实 http(s) 地址（本机测试源用 http://127.0.0.1:8848/...）。日志里也照写。
+· 「下载」按钮以前调的是 op 'download'（不存在的名字），点了没反应 —— 改成 'download.start'。
+· 嗅探清单里每条现在带"来自哪个页面"，并加了「只看当前页」开关：
+  实测清空清单后，**还在播的旧页面会重新登记**，不筛的话会让人以为"清不掉"。

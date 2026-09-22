@@ -1,0 +1,26 @@
+# 构建产物与缓存：不入库（体积大、可按源码重建）
+source/cdp/app/build/
+source/cdp/build/
+source/cdp/.gradle/
+source/cdp/local.properties
+*.iml
+.gradle/
+build/
+
+# 构件（每个 42MB，仓库放不下多份）：不入库。
+# 出处与校验靠 apk/apk-sha256.txt + MANIFEST.txt（逐文件的大小 + sha256）——哈希在库里，二进制不占地。
+apk/**/*.apk
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 编辑器/系统
+.DS_Store
+*.swp
+.idea/
+
+# 运行时产物（模拟器/测试临时文件）
+*.db
+*.db-journal
+*.db-wal

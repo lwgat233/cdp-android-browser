@@ -1,0 +1,38 @@
+
+[1m0. 前置[0m
+  先清掉这一轮的脚本（干净起点）：{"ok":true,"removed":1}
+
+[1m1. 用户脚本：命中站点的会执行，不命中的不执行[0m
+  保存命中脚本: {"ok":true,"id":"s1789715984141"}
+  [32mPASS[0m 脚本已保存（id=s1789715984141）
+  [32mPASS[0m 不命中的脚本也存进去了（id=s1789715984263）
+  重载后页面状态: {"hit":1,"miss":0,"title":"脚本已生效"}
+  [32mPASS[0m 命中 @match 的脚本执行了（__US_HIT=1）
+  [32mPASS[0m 不命中 @match 的脚本没执行（__US_MISS=0）
+  [32mPASS[0m 脚本改掉的标题生效（document.title=脚本已生效）
+
+[1m2. 从导入目录扫描（adb push 的脚本能被认出来并注入）[0m
+/tmp/cdp_pushed.user.js: 1 file pushed, 0 skipped. 0.3 MB/s (196 bytes in 0.001s)
+  扫描结果: {"ok":true,"added":[{"name":"验收-推入的脚本","kind":"userscript"}],"dir":"\/storage\/emulated\/0\/Android\/data\/dev.cdp\/files\/scripts"}
+  [32mPASS[0m 扫描认出了推入的 .user.js
+  [32mPASS[0m 推入的脚本在页面上真的执行了（__US_PUSHED=1）
+
+[1m3. 搜索：输入词 → 搜索引擎地址，导航真的发生[0m
+  结果: {"ok":true,"q":"CDP 测试","url":"https:\/\/cn.bing.com\/search?q=CDP+%E6%B5%8B%E8%AF%95"}
+  [32mPASS[0m 拼出了搜索引擎地址：https://cn.bing.com/search?q=CDP+%E6%B5%8B%E8%AF%95
+  当前页面: https://cn.bing.com/search?q=CDP+%E6%B5%8B%E8%AF%95
+
+[1m4. 找元素：按文字查（不依赖选择器）[0m
+    -> 候选 3 个，前几个：[('div', 'deepBtn'), ('div', 'divBtn'), ('div', '② 不是 <a>、也')]
+  [32mPASS[0m 按文字能查到候选，且包含那个 div 按键
+
+[1m5. 外部控制口：绑定范围 + 局域网开关[0m
+  局域网绑定: 0.0.0.0:8848
+  [32mPASS[0m 开启局域网绑定后监听 0.0.0.0:8848
+  [32mPASS[0m 默认只绑本机 127.0.0.1（安全默认）
+  请求计数: 977
+
+[1m6. 页面内点击计数（App 与页面两侧各有一份口径）[0m
+  复核: {"easy":0,"div":0,"covered":0,"cover":0,"deep":0,"link":0,"afterVideo":0}
+
+[1m小结：通过 11 项 / 失败 0 项[0m
