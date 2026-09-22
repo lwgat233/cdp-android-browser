@@ -34,7 +34,7 @@ NOTIFY = os.environ.get("NOTIFY_HOOK", str(Path.home() / ".hermes/agent-hooks/no
 STATE_DIR = Path(os.environ.get("CDP_WATCH_DIR", "/vol1/1000/aicache/cdp-watch"))
 STATE_PATH = STATE_DIR / "issues-state.json"
 EVENTS_PATH = STATE_DIR / "events.log"
-MARKER = "<!--hermes-->"
+MARKER = os.environ.get("CDP_WATCH_MARKER", "<!--hermes-->")
 
 
 def log(msg: str, quiet: bool = False) -> None:

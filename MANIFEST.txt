@@ -1,10 +1,10 @@
 CDP 归档清单（MANIFEST）：254 个文件
-生成时间：2026-09-22 14:59:19 CST
+生成时间：2026-09-22 15:00:34 CST
 交付构件：apk/cdp-debug.apk  42048460 字节  sha256 ef8fe2d421909d4b308b5e00f9631535bdbfd5447a268e2913434e153b5c0a06
 
      31175  ebf5324b3f08eac4  README.md
-     18282  73a8367b975f8517  MANIFEST.txt
-       103  3ae190ee021b7f37  apk/apk-sha256.txt
+     18705  cd47a444a0a08d43  MANIFEST.txt
+       103  f4ff90dcab9f5754  apk/apk-sha256.txt
   42048460  ef8fe2d421909d4b  apk/cdp-debug.apk
   42041602  f60c0675ffb11347  apk/测试版/cdp-28条收尾-aria2与省电排序-测试-20260921-1155-03.apk
       1892  7d1ae45fbaf6955e  apk/测试版/cdp-28条收尾-aria2与省电排序-测试-20260921-1155-03.txt
@@ -108,7 +108,7 @@ CDP 归档清单（MANIFEST）：254 个文件
       1049  97f81c4257acaea8  tools/cookietest/serve.py
       2673  8ffdc0f9760efdcb  tools/gen_manifest.py
       4930  6504f8ad29b75504  tools/sniffpick/serve.py
-      6464  e546fa7531e31b08  tools/watch_issues.py
+      6500  607fb986f2fef810  tools/watch_issues.py
        544  d4a40a4e82198b0d  tools/watch_reqs.sh
         30  269f30ed50855ef2  source/cdp/app/proguard-rules.pro
       2854  e918539d85532788  source/cdp/app/src/main/AndroidManifest.xml
