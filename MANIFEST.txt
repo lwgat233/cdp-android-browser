@@ -1,9 +1,9 @@
 CDP 归档清单（MANIFEST）：245 个文件
-生成时间：2026-09-22 13:38:24 CST
+生成时间：2026-09-22 14:12:19 CST
 交付构件：apk/cdp-debug.apk  42048287 字节  sha256 cec776e61d2818ec4b27be9dd914ce212a98fd8570acb5753d7ae586ef46dcc8
 
-     28291  da59ff597c55c8cf  README.md
-     17974  00b7e6b2eac09080  MANIFEST.txt
+     28863  4fca669bb25532df  README.md
+     18105  7af533af8f3f8a31  MANIFEST.txt
        103  3ae190ee021b7f37  apk/apk-sha256.txt
   42048287  cec776e61d2818ec  apk/cdp-debug.apk
   42041602  f60c0675ffb11347  apk/测试版/cdp-28条收尾-aria2与省电排序-测试-20260921-1155-03.apk

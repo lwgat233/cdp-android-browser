@@ -96,6 +96,14 @@ APK 每个 42MB、一轮一份，进库会迅速膨胀；出处与校验靠 `apk
 
 查历史：`git log --oneline`｜看某一轮到底改了什么：`git show <sha> --stat`。
 
+## 远端（GitHub）
+
+- 地址：<https://github.com/lwgat233/cdp-android-browser>（公开，默认分支 `master`）
+- 推送：在本目录直接 `git push`。凭证由本机 gh CLI 提供
+  （`/vol1/1000/aicache/tools/gh/bin/gh`，已 `gh auth login` 为 `lwgat233`；令牌只存在 gh 自己的配置里，不进库、不进聊天）。
+- 远端首次推送后的核对：远端 HEAD sha 与本地一致、238 个 blob、0 个 `.apk`（与 `.gitignore` 约定一致）。
+- 换机器/重新登录：`gh auth login`（设备码，需账号本人确认一次）。
+
 ## 目录结构
 
 ```
